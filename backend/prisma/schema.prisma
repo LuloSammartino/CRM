@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Para MVP local usamos SQLite (rápido de levantar).
+// Para PostgreSQL cambia el provider a "postgresql" y configura DATABASE_URL en `.env`.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales     Sale[]
+
+  @@index([name])
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  sku       String   @unique
+  category  String?
+  // En SQLite no usamos el native type `@db.Decimal(...)`.
+  // Prisma lo almacena como texto/num según el conector, pero el tipo se mantiene como Decimal.
+  unitPrice Decimal
+  stockQty  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleItems SaleItem[]
+
+  @@index([name])
+  @@index([category])
+}
+
+model Sale {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now())
+
+  customerId String
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  // total "denormalizado" para lectura rápida en dashboard/reportes.
+  total      Decimal
+
+  items      SaleItem[]
+
+  @@index([createdAt])
+  @@index([customerId])
+}
+
+model SaleItem {
+  id        String   @id @default(cuid())
+
+  saleId    String
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  qty       Int
+  unitPrice Decimal
+  lineTotal Decimal
+
+  @@index([saleId])
+  @@index([productId])
+}
+

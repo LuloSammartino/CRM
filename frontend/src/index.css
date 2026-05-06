@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base de layout (mínimo). Tailwind hace el resto. */
+html,
+body {
+  height: 100%;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
