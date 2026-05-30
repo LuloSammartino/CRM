@@ -42,8 +42,7 @@ export default function AdminLayout() {
             <nav className="flex flex-wrap gap-1.5">
               <NavItem to="/" label="Dashboard" />
               <NavItem to="/clientes" label="Clientes" />
-              <NavItem to="/inventario" label="Inventario" />
-              <NavItem to="/ventas" label="Ventas" />
+              <NavItem to="/productos" label="Productos" />
             </nav>
           </div>
         </div>

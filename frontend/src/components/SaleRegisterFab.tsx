@@ -52,8 +52,8 @@ export default function SaleRegisterFab() {
       setUnitPrice(0);
       return;
     }
-    const p = products.find((x) => x.id === productId);
-    if (p) setUnitPrice(Number(p.unitPrice));
+    const p = products.find((x) => String(x.id) === productId);
+    if (p) setUnitPrice(Number(p.precio1));
   }, [productId, products]);
 
   function resetForm() {
@@ -260,8 +260,8 @@ export default function SaleRegisterFab() {
                   >
                     <option value="">— Seleccionar —</option>
                     {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} — {p.sku} (stock {p.stockQty})
+                      <option key={p.id} value={String(p.id)}>
+                        {p.nombre} - Precio 1: ${Number(p.precio1).toFixed(2)}
                       </option>
                     ))}
                   </select>

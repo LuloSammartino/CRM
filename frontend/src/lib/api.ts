@@ -8,7 +8,7 @@
  *   Crea `frontend/.env` con:  VITE_USE_REAL_API=true
  *   (y opcionalmente VITE_API_BASE=http://localhost:4000)
  */
-import type { CreateSalePayload, Customer, DashboardMetrics, Product, SaleRow } from "./apiTypes";
+import type { CreateSalePayload, Customer, DashboardMetrics, Product, ProductFilters, SaleRow } from "./apiTypes";
 import { mockApi } from "./mockStore";
 
 export type {
@@ -16,6 +16,7 @@ export type {
   Customer,
   DashboardMetrics,
   Product,
+  ProductFilters,
   SaleLineDisplay,
   SaleLineInput,
   SaleRow
@@ -42,9 +43,30 @@ const realApi = {
   listCustomers: () => request<Customer[]>("/api/customers"),
   createCustomer: (data: Pick<Customer, "name" | "email" | "phone" | "address">) =>
     request<Customer>("/api/customers", { method: "POST", body: JSON.stringify(data) }),
-  listProducts: () => request<Product[]>("/api/products"),
-  createProduct: (data: { name: string; sku: string; category?: string; unitPrice: number; stockQty?: number }) =>
+  deleteCustomer: (id: string) => request<unknown>(`/api/customers/${id}`, { method: "DELETE" }),
+  listProducts: (filters?: ProductFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.nombre?.trim()) params.set("nombre", filters.nombre.trim());
+    if (filters?.rubro?.trim()) params.set("rubro", filters.rubro.trim());
+    if (filters?.ordenPrecio) params.set("ordenPrecio", filters.ordenPrecio);
+    const query = params.toString();
+    return request<Product[]>(`/api/products${query ? `?${query}` : ""}`);
+  },
+  listProductRubros: () => request<string[]>("/api/products/rubros"),
+  listProductProveedores: () => request<number[]>("/api/products/proveedores"),
+  getProduct: (id: number | string) => request<Product>(`/api/products/${id}`),
+  createProduct: (data: {
+    nombre: string;
+    rubro?: string | null;
+    costo?: number | string | null;
+    precio1: number | string;
+    precio2?: number | string | null;
+    precio3?: number | string | null;
+    proveedorId?: number | null;
+  }) =>
     request<Product>("/api/products", { method: "POST", body: JSON.stringify(data) }),
+  updateProduct: (id: number | string, data: Partial<Product>) =>
+    request<Product>(`/api/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   createSale: (data: CreateSalePayload) => request<unknown>("/api/sales", { method: "POST", body: JSON.stringify(data) }),
   listSales: () => request<SaleRow[]>("/api/sales")
 };

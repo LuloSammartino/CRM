@@ -15,13 +15,25 @@ export type Customer = {
 };
 
 export type Product = {
-  id: string;
-  name: string;
-  sku: string;
-  category?: string | null;
-  unitPrice: string;
-  stockQty: number;
-  createdAt: string;
+  id: number;
+  nombre: string;
+  rubro?: string | null;
+  costo?: string | null;
+  precio1: string;
+  precio2?: string | null;
+  precio3?: string | null;
+  creado?: string;
+  modificado?: string | null;
+  proveedorId?: number | string | null;
+  precio1Pct?: number | null;
+  precio2Pct?: number | null;
+  precio3Pct?: number | null;
+};
+
+export type ProductFilters = {
+  nombre?: string;
+  rubro?: string;
+  ordenPrecio?: "precio1_asc" | "precio1_desc" | "";
 };
 
 export type SaleLineInput = {
@@ -47,7 +59,6 @@ export type CreateSalePayload =
       items: SaleLineInput[];
     };
 
-/** Fila para listado / pantalla Ventas */
 export type SaleLineDisplay = {
   productName: string;
   sku: string;
