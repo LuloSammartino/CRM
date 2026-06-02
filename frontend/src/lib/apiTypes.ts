@@ -10,7 +10,13 @@ export type Customer = {
   name: string;
   email?: string | null;
   phone?: string | null;
-  address?: string | null;
+  direccion?: string | null;
+  direccion1?: string | null;
+  direccion2?: string | null;
+  cuit?: string | null;
+  iva?: string | null;
+  tipo?: string | null;
+  razonSocial?: string | null;
   createdAt: string;
 };
 

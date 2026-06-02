@@ -13,9 +13,14 @@ dotenv.config();
 const app = express();
 
 // Middlewares base
+app.set("etag", false);
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 
 // Healthcheck
 app.get("/health", (_req, res) => res.json({ ok: true }));
@@ -23,6 +28,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 // API routes
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/customers", customersRouter);
+app.use("/api/clients", customersRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/sales", salesRouter);
 

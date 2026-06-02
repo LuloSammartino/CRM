@@ -1,5 +1,4 @@
 import { NavLink, Outlet } from "react-router-dom";
-import SaleRegisterFab from "../components/SaleRegisterFab";
 import ThemeToggle from "../components/ThemeToggle";
 
 function NavItem({ to, label }: { to: string; label: string }) {
@@ -28,10 +27,10 @@ export default function AdminLayout() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 text-sm font-bold text-white shadow-lg shadow-violet-500/30">
-              C
+              F
             </span>
             <div>
-              <div className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">CRM / ERP</div>
+              <div className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">FEBRIEL CRM</div>
               <div className="text-[10px] font-medium uppercase tracking-wider text-violet-600 dark:text-violet-400">
                 Panel
               </div>
@@ -51,8 +50,6 @@ export default function AdminLayout() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Outlet />
       </main>
-
-      <SaleRegisterFab />
     </div>
   );
 }

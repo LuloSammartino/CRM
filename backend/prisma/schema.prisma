@@ -22,3 +22,19 @@ model Producto {
 
   @@map("producto")
 }
+
+model Cliente {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(50)
+  direccion   String? @db.VarChar(50)
+  direccion1  String? @map("direccion_1") @db.VarChar(50)
+  direccion2  String? @map("direccion_2") @db.VarChar(50)
+  telefono    String? @db.VarChar(30)
+  email       String? @map("e_mail") @db.VarChar(50)
+  cuit        String? @db.VarChar(11)
+  iva         String? @db.VarChar(30)
+  tipo        String? @db.VarChar(40)
+  razonSocial String? @map("razon_social") @db.VarChar(60)
+
+  @@map("clientes")
+}

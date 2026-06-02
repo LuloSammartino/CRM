@@ -157,6 +157,7 @@ export async function createProduct(req, res, next) {
         precio1: input.precio1,
         precio2: input.precio2 ?? null,
         precio3: input.precio3 ?? null,
+        creado: new Date(),
         proveedorId: input.proveedorId ?? null
       }
     });
@@ -205,6 +206,32 @@ export async function updateProduct(req, res, next) {
     }
     if (err?.code === "P2002") {
       return res.status(409).json({ error: "Conflict", message: "Producto duplicado." });
+    }
+    next(err);
+  }
+}
+
+export async function deleteProduct(req, res, next) {
+  try {
+    const id = parseProductId(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "id de producto invalido" });
+    }
+
+    await prisma.producto.delete({
+      where: { id }
+    });
+
+    res.status(204).send();
+  } catch (err) {
+    if (err?.code === "P2025") {
+      return res.status(404).json({ error: "NotFound", message: "Producto no encontrado" });
+    }
+    if (err?.code === "P2003") {
+      return res.status(409).json({
+        error: "Conflict",
+        message: "No se puede eliminar el producto porque tiene datos relacionados."
+      });
     }
     next(err);
   }

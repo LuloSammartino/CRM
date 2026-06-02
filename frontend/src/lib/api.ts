@@ -27,7 +27,12 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:4000";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) },
+    cache: "no-store",
+    headers: {
+      "Cache-Control": "no-cache",
+      "Content-Type": "application/json",
+      ...(options?.headers ?? {})
+    },
     ...options
   });
 
@@ -35,14 +40,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
 const realApi = {
   dashboard: () => request<DashboardMetrics>("/api/dashboard"),
   listCustomers: () => request<Customer[]>("/api/customers"),
-  createCustomer: (data: Pick<Customer, "name" | "email" | "phone" | "address">) =>
+  createCustomer: (data: Omit<Customer, "id" | "createdAt">) =>
     request<Customer>("/api/customers", { method: "POST", body: JSON.stringify(data) }),
+  updateCustomer: (id: string, data: Partial<Omit<Customer, "id" | "createdAt">>) =>
+    request<Customer>(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCustomer: (id: string) => request<unknown>(`/api/customers/${id}`, { method: "DELETE" }),
   listProducts: (filters?: ProductFilters) => {
     const params = new URLSearchParams();
@@ -67,6 +75,7 @@ const realApi = {
     request<Product>("/api/products", { method: "POST", body: JSON.stringify(data) }),
   updateProduct: (id: number | string, data: Partial<Product>) =>
     request<Product>(`/api/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteProduct: (id: number | string) => request<void>(`/api/products/${id}`, { method: "DELETE" }),
   createSale: (data: CreateSalePayload) => request<unknown>("/api/sales", { method: "POST", body: JSON.stringify(data) }),
   listSales: () => request<SaleRow[]>("/api/sales")
 };

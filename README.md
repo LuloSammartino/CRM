@@ -1,48 +1,60 @@
-## CRM/ERP MVP (StockBase-inspired)
+## CRM/ERP MVP
 
 Monorepo con `frontend` (React + Vite + Tailwind) y `backend` (Node + Express + Prisma).
 
 ### Requisitos
 
-- Node.js 18+ (recomendado)
+- Node.js 20.19 o superior. Recomendado: Node.js 22 LTS.
+- pnpm mediante Corepack.
 
-### Configuración rápida
+> El proyecto usa Vite 8, que no corre con Node 18.17. Prisma tambien requiere al menos Node 18.18, asi que actualizar Node resuelve ambos errores.
 
-#### 1) Backend
+### Configuracion rapida
+
+Desde la raiz del proyecto:
 
 ```bash
-cd backend
-npm install
+corepack enable
+corepack pnpm install
+corepack pnpm dev
 ```
 
-Crear `.env`:
+Si Windows no deja ejecutar `corepack enable`, abri PowerShell como administrador y ejecutalo una vez:
+
+```bash
+corepack enable
+```
+
+Despues de eso, tambien podes usar `pnpm` directo:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+### Scripts utiles
+
+```bash
+pnpm dev           # levanta frontend y backend
+pnpm dev:frontend  # levanta solo Vite
+pnpm dev:backend   # levanta solo Express
+pnpm build         # compila el frontend
+pnpm start         # inicia el backend sin watch
+```
+
+### Variables de entorno
+
+Crear `backend/.env`:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://user:pass@localhost:5432/crm?schema=public"
 PORT=4000
 ```
 
-Inicializar DB (SQLite para desarrollo local):
+Luego generar Prisma:
 
 ```bash
-npx prisma migrate dev --name init
-npx prisma generate
-npm run dev
+pnpm --filter crm-backend run prisma:generate
 ```
 
-El backend corre en `http://localhost:4000`.
-
-#### 2) Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-El frontend corre en `http://localhost:5173`.
-
-### Notas
-
-- Para cambiar a PostgreSQL, reemplaza `DATABASE_URL` en `.env` por una URL de Postgres (ej. `postgresql://user:pass@localhost:5432/crm?schema=public`) y vuelve a correr migraciones.
-
+El backend corre en `http://localhost:4000` y el frontend en `http://localhost:5173`.

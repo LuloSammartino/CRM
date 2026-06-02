@@ -1,0 +1,19 @@
+{
+  "name": "crm",
+  "private": true,
+  "packageManager": "pnpm@8.10.0",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel --filter frontend --filter crm-backend run dev",
+    "dev:frontend": "pnpm --filter frontend run dev",
+    "dev:backend": "pnpm --filter crm-backend run dev",
+    "build": "pnpm --filter frontend run build",
+    "start": "pnpm --filter crm-backend run start"
+  }
+}

@@ -1,4 +1,5 @@
 import { prisma } from "./src/db/prisma.js";
+import "dotenv/config";
 
 try {
   if (!process.env.DATABASE_URL) {

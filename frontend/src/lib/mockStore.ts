@@ -25,7 +25,7 @@ function seedData(): Persisted {
         name: "Maria Lopez",
         email: "maria@ejemplo.com",
         phone: "+54 11 6000-1111",
-        address: "Av. Corrientes 1234",
+        direccion: "Av. Corrientes 1234",
         createdAt: now
       }
     ],
@@ -98,7 +98,7 @@ export const mockApi = {
     return [...load().customers].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
-  async createCustomer(data: Pick<Customer, "name" | "email" | "phone" | "address">): Promise<Customer> {
+  async createCustomer(data: Omit<Customer, "id" | "createdAt">): Promise<Customer> {
     await delay(80);
     const state = load();
     const customer: Customer = {
@@ -106,10 +106,26 @@ export const mockApi = {
       name: data.name,
       email: data.email ?? null,
       phone: data.phone ?? null,
-      address: data.address ?? null,
+      direccion: data.direccion ?? null,
+      direccion1: data.direccion1 ?? null,
+      direccion2: data.direccion2 ?? null,
+      cuit: data.cuit ?? null,
+      iva: data.iva ?? null,
+      tipo: data.tipo ?? null,
+      razonSocial: data.razonSocial ?? null,
       createdAt: nowIso()
     };
     state.customers.push(customer);
+    save(state);
+    return customer;
+  },
+
+  async updateCustomer(id: string, data: Partial<Omit<Customer, "id" | "createdAt">>): Promise<Customer> {
+    await delay(80);
+    const state = load();
+    const customer = state.customers.find((item) => item.id === id);
+    if (!customer) throw new Error("Cliente no encontrado (modo demo).");
+    Object.assign(customer, data);
     save(state);
     return customer;
   },
@@ -196,6 +212,15 @@ export const mockApi = {
     Object.assign(product, data, { modificado: nowIso() });
     save(state);
     return product;
+  },
+
+  async deleteProduct(id: number | string): Promise<void> {
+    await delay(80);
+    const state = load();
+    const nextProducts = state.products.filter((item) => String(item.id) !== String(id));
+    if (nextProducts.length === state.products.length) throw new Error("Producto no encontrado (modo demo).");
+    state.products = nextProducts;
+    save(state);
   },
 
   async createSale(payload: CreateSalePayload): Promise<unknown> {

@@ -4,6 +4,8 @@ export type Column<T> = {
   key: string;
   header: string;
   className?: string;
+  headerClassName?: string;
+  cellClassName?: string;
   render: (row: T) => React.ReactNode;
 };
 
@@ -27,6 +29,9 @@ type Props<T> = {
   rows: T[];
   emptyMessage?: string;
   accent?: TableAccent;
+  loading?: boolean;
+  loadingMessage?: string;
+  fixedLayout?: boolean;
 };
 
 export default function DataTable<T>({
@@ -34,7 +39,10 @@ export default function DataTable<T>({
   columns,
   rows,
   emptyMessage = "Sin datos.",
-  accent = "indigo"
+  accent = "indigo",
+  loading = false,
+  loadingMessage = "Cargando...",
+  fixedLayout = false
 }: Props<T>) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md shadow-slate-200/30 ring-1 ring-black/5 dark:border-slate-700 dark:bg-slate-900/80 dark:shadow-none dark:ring-white/10">
@@ -44,15 +52,15 @@ export default function DataTable<T>({
         </div>
       ) : null}
 
-      <div className="overflow-auto">
-        <table className="min-w-full text-sm">
+      <div className={fixedLayout ? "overflow-hidden" : "overflow-auto"}>
+        <table className={fixedLayout ? "w-full table-fixed text-sm" : "min-w-full text-sm"}>
           <thead className={headTone[accent]}>
             <tr>
               {columns.map((c) => (
                 <th
                   key={c.key}
                   scope="col"
-                  className={["px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide", c.className]
+                  className={["bg-transparent px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide", c.className, c.headerClassName]
                     .filter(Boolean)
                     .join(" ")}
                 >
@@ -62,7 +70,21 @@ export default function DataTable<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {rows.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td className="px-4 py-12 text-center text-slate-500 dark:text-slate-400" colSpan={columns.length}>
+                  <div className="flex min-h-28 flex-col items-center justify-center gap-3">
+                    <span
+                      className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-600 dark:border-slate-700 dark:border-t-emerald-400"
+                      aria-hidden="true"
+                    />
+                    <span role="status" aria-live="polite" className="text-sm font-medium">
+                      {loadingMessage}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
               <tr>
                 <td className="px-4 py-8 text-center text-slate-500 dark:text-slate-400" colSpan={columns.length}>
                   {emptyMessage}
@@ -77,7 +99,7 @@ export default function DataTable<T>({
                   {columns.map((c) => (
                     <td
                       key={c.key}
-                      className={["px-4 py-3 align-top text-slate-800 dark:text-slate-200", c.className]
+                      className={["px-4 py-3 align-top text-slate-800 dark:text-slate-200", c.className, c.cellClassName]
                         .filter(Boolean)
                         .join(" ")}
                     >
