@@ -3,21 +3,21 @@ import { prisma } from "../db/prisma.js";
 
 const router = Router();
 
-// GET /api/dashboard
-// Métricas rápidas: total clientes, productos bajo stock, ventas del día.
 router.get("/", async (_req, res, next) => {
   try {
-    const lowStockThreshold = 5;
+    const today = new Date();
+    const start = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0));
+    const end = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + 1, 0, 0, 0));
 
-    const [totalCustomers, lowStockProducts, todaySalesAgg] = await Promise.all([
-      prisma.customer.count(),
-      prisma.product.count({ where: { stockQty: { lte: lowStockThreshold } } }),
-      prisma.sale.aggregate({
-        _sum: { total: true },
+    const [totalCustomers, todaySalesAgg] = await Promise.all([
+      prisma.cliente.count(),
+      prisma.venta.aggregate({
+        _sum: { montoTotal: true },
         _count: { _all: true },
         where: {
-          createdAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          fecha: {
+            gte: start,
+            lt: end
           }
         }
       })
@@ -25,9 +25,9 @@ router.get("/", async (_req, res, next) => {
 
     res.json({
       totalCustomers,
-      lowStockProducts,
+      lowStockProducts: 0,
       todaySalesCount: todaySalesAgg._count?._all ?? 0,
-      todaySalesTotal: todaySalesAgg._sum?.total ?? 0
+      todaySalesTotal: todaySalesAgg._sum?.montoTotal ?? 0
     });
   } catch (err) {
     next(err);
@@ -35,4 +35,3 @@ router.get("/", async (_req, res, next) => {
 });
 
 export default router;
-

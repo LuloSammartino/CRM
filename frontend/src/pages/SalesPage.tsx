@@ -21,7 +21,7 @@ export default function SalesPage() {
     api
       .listSales()
       .then(setRows)
-      .catch((e) => setError(String(e?.message ?? e)));
+      .catch((e) => setError(String((e as Error)?.message ?? e)));
   }, []);
 
   useEffect(() => {
@@ -32,10 +32,10 @@ export default function SalesPage() {
   }, [load]);
 
   const todayCount = useMemo(() => {
-    const t = new Date();
-    return rows.filter((r) => {
-      const d = new Date(r.createdAt);
-      return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
+    const today = new Date();
+    return rows.filter((row) => {
+      const date = new Date(row.createdAt);
+      return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
     }).length;
   }, [rows]);
 
@@ -45,22 +45,22 @@ export default function SalesPage() {
         key: "createdAt",
         header: "Fecha",
         className: "whitespace-nowrap",
-        render: (s) => formatSaleDate(s.createdAt)
+        render: (sale) => formatSaleDate(sale.createdAt)
       },
       {
         key: "customer",
         header: "Cliente",
-        render: (s) => <span className="font-medium text-amber-900 dark:text-amber-100">{s.customerName}</span>
+        render: (sale) => <span className="font-medium text-amber-900 dark:text-amber-100">{sale.customerName}</span>
       },
       {
         key: "lines",
         header: "Productos",
-        render: (s) => (
+        render: (sale) => (
           <ul className="max-w-md list-none space-y-0.5 p-0 text-xs">
-            {s.lines.map((l, i) => (
-              <li key={i} className="text-slate-700 dark:text-slate-300">
-                <span className="font-semibold text-violet-700 dark:text-violet-300">{l.qty}×</span> {l.productName}{" "}
-                <span className="text-slate-500 dark:text-slate-500">({l.sku})</span>
+            {sale.lines.map((line, index) => (
+              <li key={index} className="text-slate-700 dark:text-slate-300">
+                <span className="font-semibold text-violet-700 dark:text-violet-300">{line.qty}x</span>{" "}
+                {line.productName} <span className="text-slate-500 dark:text-slate-500">({line.sku})</span>
               </li>
             ))}
           </ul>
@@ -70,9 +70,9 @@ export default function SalesPage() {
         key: "total",
         header: "Total",
         className: "whitespace-nowrap text-right",
-        render: (s) => (
+        render: (sale) => (
           <span className="text-base font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-            ${Number(s.total).toFixed(2)}
+            ${Number(sale.total).toFixed(2)}
           </span>
         )
       }
@@ -83,26 +83,15 @@ export default function SalesPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader
-          title="Ventas"
-          subtitle="Historial de operaciones. Usá el botón + para registrar una nueva venta."
-          tone="amber"
-        />
+        <PageHeader title="Ventas" subtitle="Historial de operaciones." tone="amber" />
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 text-sm font-semibold text-amber-950 dark:border-amber-700 dark:from-amber-950/50 dark:to-orange-950/40 dark:text-amber-100">
-            📋 {rows.length} en historial
+            {rows.length} en historial
           </span>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100">
             Hoy: {todayCount}
           </span>
         </div>
-      </div>
-
-      <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-br from-amber-50 via-orange-50/80 to-rose-50/60 p-4 text-sm text-amber-950 dark:border-amber-800/60 dark:from-amber-950/30 dark:via-slate-900 dark:to-rose-950/20 dark:text-amber-100">
-        <p className="font-medium text-amber-900 dark:text-amber-200">
-          Las filas de demostración se generan al iniciar el almacén local. Las ventas nuevas aparecen arriba del listado al
-          guardarlas.
-        </p>
       </div>
 
       {error ? (

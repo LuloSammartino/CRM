@@ -30,32 +30,66 @@ const priceOrderBy = {
   precio1_desc: { precio1: "desc" }
 };
 
+function parsePagination(query) {
+  const limit = Number(query.limit);
+  const offset = Number(query.offset);
+
+  if (!Number.isInteger(limit) || limit <= 0) return null;
+
+  return {
+    limit: Math.min(limit, 100),
+    offset: Number.isInteger(offset) && offset > 0 ? offset : 0
+  };
+}
+
 export async function listProducts(req, res, next) {
   try {
     const nombre = typeof req.query.nombre === "string" ? req.query.nombre.trim() : "";
     const rubro = typeof req.query.rubro === "string" ? req.query.rubro.trim() : "";
     const ordenPrecio = typeof req.query.ordenPrecio === "string" ? req.query.ordenPrecio : "";
     const orderBy = priceOrderBy[ordenPrecio] ?? { nombre: "asc" };
+    const pagination = parsePagination(req.query);
+    const where = {
+      ...(nombre
+        ? {
+            nombre: {
+              contains: nombre,
+              mode: "insensitive"
+            }
+          }
+        : {}),
+      ...(rubro
+        ? {
+            rubro: {
+              contains: rubro,
+              mode: "insensitive"
+            }
+          }
+        : {})
+    };
+
+    if (pagination) {
+      const [products, total] = await Promise.all([
+        prisma.producto.findMany({
+          where,
+          orderBy,
+          skip: pagination.offset,
+          take: pagination.limit,
+          select: productListSelect
+        }),
+        prisma.producto.count({ where })
+      ]);
+
+      return res.json({
+        rows: products.map(cleanProduct),
+        total,
+        limit: pagination.limit,
+        offset: pagination.offset
+      });
+    }
 
     const products = await prisma.producto.findMany({
-      where: {
-        ...(nombre
-          ? {
-              nombre: {
-                contains: nombre,
-                mode: "insensitive"
-              }
-            }
-          : {}),
-        ...(rubro
-          ? {
-              rubro: {
-                contains: rubro,
-                mode: "insensitive"
-              }
-            }
-          : {})
-      },
+      where,
       orderBy,
       select: productListSelect
     });

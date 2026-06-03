@@ -1,20 +1,22 @@
-/**
- * API del frontend.
- *
- * Modo demo (sin HTTP): por defecto está activo. Los datos viven en memoria + localStorage
- * (`mockStore.ts`). No se hace ninguna petición al backend.
- *
- * Para volver a usar Express cuando lo retomes:
- *   Crea `frontend/.env` con:  VITE_USE_REAL_API=true
- *   (y opcionalmente VITE_API_BASE=http://localhost:4000)
- */
-import type { CreateSalePayload, Customer, DashboardMetrics, Product, ProductFilters, SaleRow } from "./apiTypes";
-import { mockApi } from "./mockStore";
+import type {
+  CreateSalePayload,
+  Customer,
+  CustomerFilters,
+  DashboardMetrics,
+  PaginatedResult,
+  PaginationParams,
+  Product,
+  ProductFilters,
+  SaleRow
+} from "./apiTypes";
 
 export type {
   CreateSalePayload,
   Customer,
+  CustomerFilters,
   DashboardMetrics,
+  PaginatedResult,
+  PaginationParams,
   Product,
   ProductFilters,
   SaleLineDisplay,
@@ -22,7 +24,6 @@ export type {
   SaleRow
 } from "./apiTypes";
 
-const USE_REAL_API = import.meta.env.VITE_USE_REAL_API === "true";
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:4000";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -40,13 +41,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
   }
+
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
-const realApi = {
+export const api = {
   dashboard: () => request<DashboardMetrics>("/api/dashboard"),
   listCustomers: () => request<Customer[]>("/api/customers"),
+  listCustomersPage: (filters?: CustomerFilters & PaginationParams) => {
+    const params = new URLSearchParams();
+    if (filters?.q?.trim()) params.set("q", filters.q.trim());
+    params.set("limit", String(filters?.limit ?? 100));
+    params.set("offset", String(filters?.offset ?? 0));
+    return request<PaginatedResult<Customer>>(`/api/customers?${params.toString()}`);
+  },
   createCustomer: (data: Omit<Customer, "id" | "createdAt">) =>
     request<Customer>("/api/customers", { method: "POST", body: JSON.stringify(data) }),
   updateCustomer: (id: string, data: Partial<Omit<Customer, "id" | "createdAt">>) =>
@@ -60,6 +69,15 @@ const realApi = {
     const query = params.toString();
     return request<Product[]>(`/api/products${query ? `?${query}` : ""}`);
   },
+  listProductsPage: (filters?: ProductFilters & PaginationParams) => {
+    const params = new URLSearchParams();
+    if (filters?.nombre?.trim()) params.set("nombre", filters.nombre.trim());
+    if (filters?.rubro?.trim()) params.set("rubro", filters.rubro.trim());
+    if (filters?.ordenPrecio) params.set("ordenPrecio", filters.ordenPrecio);
+    params.set("limit", String(filters?.limit ?? 100));
+    params.set("offset", String(filters?.offset ?? 0));
+    return request<PaginatedResult<Product>>(`/api/products?${params.toString()}`);
+  },
   listProductRubros: () => request<string[]>("/api/products/rubros"),
   listProductProveedores: () => request<number[]>("/api/products/proveedores"),
   getProduct: (id: number | string) => request<Product>(`/api/products/${id}`),
@@ -71,13 +89,19 @@ const realApi = {
     precio2?: number | string | null;
     precio3?: number | string | null;
     proveedorId?: number | null;
-  }) =>
-    request<Product>("/api/products", { method: "POST", body: JSON.stringify(data) }),
+  }) => request<Product>("/api/products", { method: "POST", body: JSON.stringify(data) }),
   updateProduct: (id: number | string, data: Partial<Product>) =>
     request<Product>(`/api/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteProduct: (id: number | string) => request<void>(`/api/products/${id}`, { method: "DELETE" }),
   createSale: (data: CreateSalePayload) => request<unknown>("/api/sales", { method: "POST", body: JSON.stringify(data) }),
-  listSales: () => request<SaleRow[]>("/api/sales")
+  listSalesPage: (params?: PaginationParams) => {
+    const query = new URLSearchParams();
+    query.set("limit", String(params?.limit ?? 50));
+    query.set("offset", String(params?.offset ?? 0));
+    return request<PaginatedResult<SaleRow>>(`/api/sales?${query.toString()}`);
+  },
+  listSales: async () => {
+    const result = await api.listSalesPage({ limit: 100, offset: 0 });
+    return result.rows;
+  }
 };
-
-export const api = USE_REAL_API ? realApi : mockApi;

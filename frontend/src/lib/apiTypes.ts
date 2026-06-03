@@ -42,6 +42,22 @@ export type ProductFilters = {
   ordenPrecio?: "precio1_asc" | "precio1_desc" | "";
 };
 
+export type PaginationParams = {
+  limit?: number;
+  offset?: number;
+};
+
+export type PaginatedResult<T> = {
+  rows: T[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type CustomerFilters = {
+  q?: string;
+};
+
 export type SaleLineInput = {
   productId: string;
   qty: number;
@@ -49,6 +65,12 @@ export type SaleLineInput = {
 };
 
 export type CreateSalePayload =
+  | {
+      soldAt: string;
+      customerId?: string | null;
+      metodoPago?: string;
+      items: SaleLineInput[];
+    }
   | {
       soldAt: string;
       customerId: string;
@@ -76,8 +98,11 @@ export type SaleLineDisplay = {
 export type SaleRow = {
   id: string;
   createdAt: string;
-  customerId: string;
+  fecha?: string | null;
+  hora?: string | null;
+  customerId: string | null;
   customerName: string;
+  metodoPago?: string;
   total: number;
   lines: SaleLineDisplay[];
 };

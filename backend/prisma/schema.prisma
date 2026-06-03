@@ -9,16 +9,18 @@ datasource db {
 }
 
 model Producto {
-  id          Int      @id @default(autoincrement())
-  nombre      String   @unique @db.VarChar(50)
-  rubro       String?  @db.VarChar(50)
-  costo       Decimal? @db.Decimal(9, 2)
-  precio1     Decimal  @map("precio_1") @db.Decimal(9, 2)
-  precio2     Decimal? @map("precio_2") @db.Decimal(9, 2)
-  precio3     Decimal? @map("precio_3") @db.Decimal(9, 2)
-  creado      DateTime @default(now()) @db.Date
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique @db.VarChar(50)
+  rubro       String?   @db.VarChar(50)
+  costo       Decimal?  @db.Decimal(9, 2)
+  precio1     Decimal   @map("precio_1") @db.Decimal(9, 2)
+  precio2     Decimal?  @map("precio_2") @db.Decimal(9, 2)
+  precio3     Decimal?  @map("precio_3") @db.Decimal(9, 2)
+  creado      DateTime  @default(now()) @db.Date
   modificado  DateTime? @db.Date
-  proveedorId Decimal? @map("proveedor_id") @db.Decimal
+  proveedorId Decimal?  @map("proveedor_id") @db.Decimal
+
+  ventasDetalle VentaDetalle[]
 
   @@map("producto")
 }
@@ -36,5 +38,39 @@ model Cliente {
   tipo        String? @db.VarChar(40)
   razonSocial String? @map("razon_social") @db.VarChar(60)
 
+  ventas Venta[]
+
   @@map("clientes")
+}
+
+model Venta {
+  id              Int       @id @default(autoincrement())
+  fecha           DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  hora            DateTime  @default(dbgenerated("CURRENT_TIME")) @db.Time(6)
+  clienteId       Int?      @map("cliente_id")
+  montoTotal      Decimal   @map("monto_total") @db.Decimal(9, 2)
+  metodoPago      String    @map("metodo_pago") @db.VarChar(50)
+  tipoComprobante String?   @map("tipo_comprobante") @db.VarChar(10)
+  nroComprobante  String?   @map("nro_comprobante") @db.VarChar(20)
+  cae             String?   @db.VarChar(14)
+  vencimientoCae  DateTime? @map("vencimiento_cae") @db.Date
+
+  cliente  Cliente?       @relation(fields: [clienteId], references: [id])
+  detalles VentaDetalle[]
+
+  @@map("ventas")
+}
+
+model VentaDetalle {
+  id             Int     @id @default(autoincrement())
+  ventaId        Int     @map("venta_id")
+  productoId     Int     @map("producto_id")
+  cantidad       Int
+  precioUnitario Decimal @map("precio_unitario") @db.Decimal(9, 2)
+  subtotal       Decimal @db.Decimal(9, 2)
+
+  venta    Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@map("ventas_detalle")
 }

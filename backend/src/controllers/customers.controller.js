@@ -18,9 +18,49 @@ function cleanCustomer(customer) {
   };
 }
 
-export async function listCustomers(_req, res, next) {
+function parsePagination(query) {
+  const limit = Number(query.limit);
+  const offset = Number(query.offset);
+
+  if (!Number.isInteger(limit) || limit <= 0) return null;
+
+  return {
+    limit: Math.min(limit, 100),
+    offset: Number.isInteger(offset) && offset > 0 ? offset : 0
+  };
+}
+
+export async function listCustomers(req, res, next) {
   try {
+    const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const pagination = parsePagination(req.query);
+    const where = query
+      ? {
+          nombre: { contains: query, mode: "insensitive" }
+        }
+      : {};
+
+    if (pagination) {
+      const [customers, total] = await Promise.all([
+        prisma.cliente.findMany({
+          where,
+          orderBy: { nombre: "asc" },
+          skip: pagination.offset,
+          take: pagination.limit
+        }),
+        prisma.cliente.count({ where })
+      ]);
+
+      return res.json({
+        rows: customers.map(cleanCustomer),
+        total,
+        limit: pagination.limit,
+        offset: pagination.offset
+      });
+    }
+
     const customers = await prisma.cliente.findMany({
+      where,
       orderBy: { nombre: "asc" }
     });
     res.json(customers.map(cleanCustomer));
