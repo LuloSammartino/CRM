@@ -8,7 +8,33 @@ import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 function formatSaleDate(iso: string) {
   try {
-    return new Date(iso).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+    const inputDate = new Date(iso);
+    const today = new Date();
+    
+    // Crear una fecha para "ayer" restándole un día a "hoy"
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    // Comprobar que el string ISO sea una fecha válida
+    if (isNaN(inputDate.getTime())) return iso;
+
+    // Obtener strings con formato "dd/mm/aaaa" para comparar
+    const inputDateString = inputDate.toLocaleDateString("es-AR");
+    const todayString = today.toLocaleDateString("es-AR");
+    const yesterdayString = yesterday.toLocaleDateString("es-AR");
+
+    // Extraemos la hora corta ya que la usaremos en ambos casos
+    const time = inputDate.toLocaleTimeString("es-AR", { timeStyle: "short" });
+
+    if (inputDateString === todayString) {
+      return `Hoy, ${time}`;
+    } else if (inputDateString === yesterdayString) {
+      return `Ayer, ${time}`;
+    }
+
+    // Si no es hoy ni ayer, devolvemos tu formato original
+    return inputDate.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+
   } catch {
     return iso;
   }
@@ -91,7 +117,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader title="Dashboard" subtitle="Metricas rapidas del negocio." tone="violet" />
+        <PageHeader title="Dashboard" tone="violet" />
         <AddSaleButton onCreated={load} />
       </div>
 
@@ -121,9 +147,6 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">Ventas recientes</div>
-            <div className="text-xs text-slate-600 dark:text-slate-300">
-              Ultimas {Math.min(8, totalSales)} de {totalSales} en historial.
-            </div>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 text-xs font-semibold text-amber-950 dark:border-amber-700 dark:from-amber-950/50 dark:to-orange-950/40 dark:text-amber-100">
             {totalSales} totales
@@ -131,7 +154,6 @@ export default function DashboardPage() {
         </div>
 
         <DataTable
-          title="Ultimas ventas"
           accent="amber"
           columns={saleColumns}
           rows={sales}

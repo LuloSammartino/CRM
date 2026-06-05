@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import ThemeToggle from "../components/ThemeToggle";
+
 
 function NavItem({ to, label }: { to: string; label: string }) {
   return (
@@ -37,7 +37,6 @@ export default function AdminLayout() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <ThemeToggle />
             <nav className="flex flex-wrap gap-1.5">
               <NavItem to="/" label="Dashboard" />
               <NavItem to="/clientes" label="Clientes" />
