@@ -8,7 +8,25 @@ import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 function formatSaleDate(iso: string) {
   try {
-    return new Date(iso).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+    const inputDate = new Date(iso);
+    const today = new Date();
+
+    // Comprobar que el string ISO sea una fecha válida
+    if (isNaN(inputDate.getTime())) return iso;
+
+    // Obtener strings con formato "dd/mm/aaaa" para comparar
+    const inputDateString = inputDate.toLocaleDateString("es-AR");
+    const todayString = today.toLocaleDateString("es-AR");
+
+    if (inputDateString === todayString) {
+      // Si es hoy, extraemos solo la hora corta
+      const time = inputDate.toLocaleTimeString("es-AR", { timeStyle: "short" });
+      return `Hoy, ${time}`;
+    }
+
+    // Si no es hoy, devolvemos tu formato original
+    return inputDate.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+
   } catch {
     return iso;
   }
@@ -91,7 +109,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader title="Dashboard" subtitle="Metricas rapidas del negocio." tone="violet" />
+        <PageHeader title="Dashboard" tone="violet" />
         <AddSaleButton onCreated={load} />
       </div>
 
@@ -105,11 +123,15 @@ export default function DashboardPage() {
         <SummaryCard accent="sky" label="Total clientes" value={metrics?.totalCustomers ?? "-"} />
         <SummaryCard
           accent="amber"
-          label="Productos bajo stock"
+          label="Total Productos "
           value={metrics?.lowStockProducts ?? "-"}
-          hint="Umbral: 5 unidades"
         />
-        <SummaryCard accent="violet" label="Ventas hoy" value={metrics?.todaySalesCount ?? "-"} />
+        <SummaryCard 
+        accent="violet" 
+        label="Ventas hoy" 
+        value={metrics?.todaySalesCount ?? "-"}
+        hint= "5 Cuenta corriente"
+        />
         <SummaryCard
           accent="emerald"
           label="Total vendido hoy"
@@ -121,9 +143,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">Ventas recientes</div>
-            <div className="text-xs text-slate-600 dark:text-slate-300">
-              Ultimas {Math.min(8, totalSales)} de {totalSales} en historial.
-            </div>
+            
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 text-xs font-semibold text-amber-950 dark:border-amber-700 dark:from-amber-950/50 dark:to-orange-950/40 dark:text-amber-100">
             {totalSales} totales
@@ -131,7 +151,6 @@ export default function DashboardPage() {
         </div>
 
         <DataTable
-          title="Ultimas ventas"
           accent="amber"
           columns={saleColumns}
           rows={sales}
