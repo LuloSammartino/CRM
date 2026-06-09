@@ -60,7 +60,7 @@ export default function DataTable<T>({
                 <th
                   key={c.key}
                   scope="col"
-                  className={["bg-transparent px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide", c.className, c.headerClassName]
+                  className={["bg-transparent px-4 py-3 text-left text-xs  font-semibold uppercase tracking-wide", c.className, c.headerClassName]
                     .filter(Boolean)
                     .join(" ")}
                 >

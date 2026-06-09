@@ -1,5 +1,6 @@
 export type DashboardMetrics = {
   totalCustomers: number;
+  totalProducts: number;
   lowStockProducts: number;
   todaySalesCount: number;
   todaySalesTotal: number;
@@ -36,9 +37,20 @@ export type Product = {
   precio3Pct?: number | null;
 };
 
+export type Provider = {
+  id: string;
+  nombre: string;
+  direccion?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  cuit?: string | null;
+  aclaracion?: string | null;
+};
+
 export type ProductFilters = {
   nombre?: string;
   rubro?: string;
+  proveedorId?: number | string;
   ordenPrecio?: "precio1_asc" | "precio1_desc" | "";
 };
 
@@ -56,6 +68,13 @@ export type PaginatedResult<T> = {
 
 export type CustomerFilters = {
   q?: string;
+  phone?: string;
+  iva?: string;
+};
+
+export type ProviderFilters = {
+  q?: string;
+  nombre?: string;
 };
 
 export type SaleLineInput = {

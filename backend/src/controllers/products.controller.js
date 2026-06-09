@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
 
 function parseProductId(value) {
@@ -46,6 +47,7 @@ export async function listProducts(req, res, next) {
   try {
     const nombre = typeof req.query.nombre === "string" ? req.query.nombre.trim() : "";
     const rubro = typeof req.query.rubro === "string" ? req.query.rubro.trim() : "";
+    const proveedorId = Number(req.query.proveedorId);
     const ordenPrecio = typeof req.query.ordenPrecio === "string" ? req.query.ordenPrecio : "";
     const orderBy = priceOrderBy[ordenPrecio] ?? { nombre: "asc" };
     const pagination = parsePagination(req.query);
@@ -65,7 +67,8 @@ export async function listProducts(req, res, next) {
               mode: "insensitive"
             }
           }
-        : {})
+        : {}),
+      ...(Number.isInteger(proveedorId) && proveedorId > 0 ? { proveedorId } : {})
     };
 
     if (pagination) {
@@ -179,6 +182,19 @@ const createProductSchema = z.object({
 
 const updateProductSchema = createProductSchema.partial();
 
+const bulkUpdateProductSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("rubro"),
+    rubro: z.string().min(1),
+    percentage: z.coerce.number().min(-100).max(1000)
+  }),
+  z.object({
+    mode: z.literal("proveedor"),
+    proveedorId: z.coerce.number().int().positive(),
+    percentage: z.coerce.number().min(-100).max(1000)
+  })
+]);
+
 export async function createProduct(req, res, next) {
   try {
     const input = createProductSchema.parse(req.body);
@@ -240,6 +256,35 @@ export async function updateProduct(req, res, next) {
     }
     if (err?.code === "P2002") {
       return res.status(409).json({ error: "Conflict", message: "Producto duplicado." });
+    }
+    next(err);
+  }
+}
+
+export async function bulkUpdateProducts(req, res, next) {
+  try {
+    const input = bulkUpdateProductSchema.parse(req.body);
+    const factor = 1 + input.percentage / 100;
+    const where =
+      input.mode === "rubro"
+        ? Prisma.sql`LOWER(TRIM(rubro)) = LOWER(${input.rubro.trim()})`
+        : Prisma.sql`proveedor_id = ${input.proveedorId}`;
+
+    const updated = await prisma.$executeRaw`
+      UPDATE producto
+      SET
+        costo = CASE WHEN costo IS NULL THEN NULL ELSE ROUND((costo * ${factor})::numeric, 2) END,
+        precio_1 = ROUND((precio_1 * ${factor})::numeric, 2),
+        precio_2 = CASE WHEN precio_2 IS NULL THEN NULL ELSE ROUND((precio_2 * ${factor})::numeric, 2) END,
+        precio_3 = CASE WHEN precio_3 IS NULL THEN NULL ELSE ROUND((precio_3 * ${factor})::numeric, 2) END,
+        modificado = CURRENT_DATE
+      WHERE ${where}
+    `;
+
+    res.json({ updated });
+  } catch (err) {
+    if (err?.name === "ZodError") {
+      return res.status(400).json({ error: "ValidationError", details: err.errors });
     }
     next(err);
   }

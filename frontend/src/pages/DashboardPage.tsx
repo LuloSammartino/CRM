@@ -10,13 +10,10 @@ function formatSaleDate(iso: string) {
   try {
     const inputDate = new Date(iso);
     const today = new Date();
-<<<<<<< HEAD
-=======
     
     // Crear una fecha para "ayer" restándole un día a "hoy"
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
->>>>>>> 01ad10c16fc8e9e489b69a8e6f9506349bab74c0
 
     // Comprobar que el string ISO sea una fecha válida
     if (isNaN(inputDate.getTime())) return iso;
@@ -24,16 +21,6 @@ function formatSaleDate(iso: string) {
     // Obtener strings con formato "dd/mm/aaaa" para comparar
     const inputDateString = inputDate.toLocaleDateString("es-AR");
     const todayString = today.toLocaleDateString("es-AR");
-<<<<<<< HEAD
-
-    if (inputDateString === todayString) {
-      // Si es hoy, extraemos solo la hora corta
-      const time = inputDate.toLocaleTimeString("es-AR", { timeStyle: "short" });
-      return `Hoy, ${time}`;
-    }
-
-    // Si no es hoy, devolvemos tu formato original
-=======
     const yesterdayString = yesterday.toLocaleDateString("es-AR");
 
     // Extraemos la hora corta ya que la usaremos en ambos casos
@@ -46,7 +33,6 @@ function formatSaleDate(iso: string) {
     }
 
     // Si no es hoy ni ayer, devolvemos tu formato original
->>>>>>> 01ad10c16fc8e9e489b69a8e6f9506349bab74c0
     return inputDate.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
 
   } catch {
@@ -146,7 +132,7 @@ export default function DashboardPage() {
         <SummaryCard
           accent="amber"
           label="Total Productos "
-          value={metrics?.lowStockProducts ?? "-"}
+          value={metrics?.totalProducts ?? "-"}
         />
         <SummaryCard 
         accent="violet" 
@@ -165,10 +151,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">Ventas recientes</div>
-<<<<<<< HEAD
             
-=======
->>>>>>> 01ad10c16fc8e9e489b69a8e6f9506349bab74c0
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 text-xs font-semibold text-amber-950 dark:border-amber-700 dark:from-amber-950/50 dark:to-orange-950/40 dark:text-amber-100">
             {totalSales} totales

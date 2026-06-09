@@ -33,12 +33,24 @@ function parsePagination(query) {
 export async function listCustomers(req, res, next) {
   try {
     const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const phone = typeof req.query.phone === "string" ? req.query.phone.trim() : "";
+    const iva = typeof req.query.iva === "string" ? req.query.iva.trim() : "";
     const pagination = parsePagination(req.query);
-    const where = query
-      ? {
-          nombre: { contains: query, mode: "insensitive" }
-        }
-      : {};
+    const andFilters = [];
+
+    if (query) {
+      andFilters.push({ nombre: { contains: query, mode: "insensitive" } });
+    }
+
+    if (phone) {
+      andFilters.push({ telefono: { contains: phone, mode: "insensitive" } });
+    }
+
+    if (iva) {
+      andFilters.push({ iva: { contains: iva, mode: "insensitive" } });
+    }
+
+    const where = andFilters.length ? { AND: andFilters } : {};
 
     if (pagination) {
       const [customers, total] = await Promise.all([

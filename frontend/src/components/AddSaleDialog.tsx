@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, type Customer, type Product } from "../lib/api";
 import { notifySaleCreated } from "../lib/events";
+import ModalPortal from "./ModalPortal";
 import { profitPercent } from "./productFormUtils";
 
 function todayISODateLocal() {
@@ -218,6 +219,7 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
   }
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
       <button
         type="button"
@@ -285,21 +287,9 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
                   setCustomerId("");
                   setSelectedCustomerName("");
                 }}
-                placeholder="Buscar cliente por nombre o dejar vacio para Consumidor Final"
+                placeholder="Buscar cliente por nombre"
               />
-              {customerId ? (
-                <button
-                  type="button"
-                  className="mt-1 text-xs font-semibold text-violet-700 hover:text-violet-900 dark:text-violet-300 dark:hover:text-violet-200"
-                  onClick={() => {
-                    setCustomerId("");
-                    setCustomerSearch("");
-                    setSelectedCustomerName("");
-                  }}
-                >
-                  Usar Consumidor Final
-                </button>
-              ) : null}
+              
               {showCustomerResults ? (
                 <div className="absolute left-0 right-0 top-full z-[120] mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
                   {loadingCustomers ? (
@@ -532,5 +522,6 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

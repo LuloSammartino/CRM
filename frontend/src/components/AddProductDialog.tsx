@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { api } from "../lib/api";
+import { api, type Provider } from "../lib/api";
 import {
   emptyProductForm,
   pricePairs,
@@ -8,10 +8,11 @@ import {
   updatePriceInForm,
   type ProductEditorForm
 } from "./productFormUtils";
+import ModalPortal from "./ModalPortal";
 
 type AddProductDialogProps = {
   rubros: string[];
-  proveedores: number[];
+  proveedores: Provider[];
   onClose: () => void;
   onCreated: () => Promise<void>;
 };
@@ -61,6 +62,7 @@ export default function AddProductDialog({ rubros, proveedores, onClose, onCreat
   };
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
       <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-lg bg-white shadow-xl dark:bg-slate-900">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-700">
@@ -177,9 +179,9 @@ export default function AddProductDialog({ rubros, proveedores, onClose, onCreat
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-950/40 dark:focus:border-emerald-800 dark:focus:ring-emerald-900/50"
             >
               <option value="">Sin proveedor</option>
-              {proveedores.map((item) => (
-                <option key={item} value={item}>
-                  Proveedor {item}
+              {proveedores.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.nombre} - ID {provider.id}
                 </option>
               ))}
             </select>
@@ -205,5 +207,6 @@ export default function AddProductDialog({ rubros, proveedores, onClose, onCreat
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

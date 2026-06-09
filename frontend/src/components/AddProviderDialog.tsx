@@ -1,39 +1,39 @@
 import { useState, type FormEvent } from "react";
 import { api } from "../lib/api";
-import { cleanCustomerForm, customerFields, emptyCustomerForm, ivaOptions, type CustomerForm } from "./customerFormUtils";
+import { cleanProviderForm, emptyProviderForm, providerFields, type ProviderForm } from "./providerFormUtils";
 import ModalPortal from "./ModalPortal";
 
-type AddCustomerDialogProps = {
+type AddProviderDialogProps = {
   onClose: () => void;
   onCreated: () => void;
 };
 
-export default function AddCustomerDialog({ onClose, onCreated }: AddCustomerDialogProps) {
-  const [form, setForm] = useState<CustomerForm>(emptyCustomerForm);
+export default function AddProviderDialog({ onClose, onCreated }: AddProviderDialogProps) {
+  const [form, setForm] = useState<ProviderForm>(emptyProviderForm);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const close = () => {
     if (saving) return;
     setError(null);
-    setForm(emptyCustomerForm);
+    setForm(emptyProviderForm);
     onClose();
   };
 
-  const saveCustomer = async (event: FormEvent) => {
+  const saveProvider = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
 
-    const payload = cleanCustomerForm(form);
-    if (!payload.name) {
-      setError("El nombre del cliente no puede quedar vacio.");
+    const payload = cleanProviderForm(form);
+    if (!payload.nombre) {
+      setError("El nombre del proveedor no puede quedar vacio.");
       return;
     }
 
     setSaving(true);
 
     try {
-      await api.createCustomer(payload);
+      await api.createProvider(payload);
       onCreated();
       onClose();
     } catch (e) {
@@ -48,7 +48,7 @@ export default function AddCustomerDialog({ onClose, onCreated }: AddCustomerDia
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
       <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-lg bg-white shadow-xl dark:bg-slate-900">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">Nuevo cliente</h2>
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Nuevo proveedor</h2>
           <button
             type="button"
             aria-label="Cerrar"
@@ -68,33 +68,18 @@ export default function AddCustomerDialog({ onClose, onCreated }: AddCustomerDia
           </div>
         ) : null}
 
-        <form onSubmit={saveCustomer} className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
-          {customerFields.map(({ key, label, required, type, maxLength }) => (
-            <label key={key} className={key === "name" ? "grid gap-1 sm:col-span-2" : "grid gap-1"}>
+        <form onSubmit={saveProvider} className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
+          {providerFields.map(({ key, label, required, type, maxLength }) => (
+            <label key={key} className={key === "nombre" ? "grid gap-1 sm:col-span-2" : "grid gap-1"}>
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{label}</span>
-              {key === "iva" ? (
-                <select
-                  value={form.iva ?? ""}
-                  onChange={(e) => setForm((current) => ({ ...current, iva: e.target.value }))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-sky-300 focus:ring-2 focus:ring-sky-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-sky-800 dark:focus:ring-sky-900/50"
-                >
-                  <option value=""></option>
-                  {ivaOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={form[key] ?? ""}
-                  onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-sky-300 focus:ring-2 focus:ring-sky-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-sky-800 dark:focus:ring-sky-900/50"
-                  type={type ?? "text"}
-                  maxLength={maxLength}
-                  required={required}
-                />
-              )}
+              <input
+                value={form[key] ?? ""}
+                onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-violet-300 focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-violet-800 dark:focus:ring-violet-900/50"
+                type={type ?? "text"}
+                maxLength={maxLength}
+                required={required}
+              />
             </label>
           ))}
 
@@ -110,9 +95,9 @@ export default function AddCustomerDialog({ onClose, onCreated }: AddCustomerDia
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-sky-500/20 hover:from-sky-500 hover:to-cyan-500 disabled:opacity-60"
+              className="inline-flex items-center rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-500/20 hover:from-violet-500 hover:to-fuchsia-500 disabled:opacity-60"
             >
-              {saving ? "Guardando..." : "Guardar cliente"}
+              {saving ? "Guardando..." : "Guardar proveedor"}
             </button>
           </div>
         </form>

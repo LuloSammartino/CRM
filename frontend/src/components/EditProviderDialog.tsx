@@ -1,33 +1,33 @@
 import { useState, type FormEvent } from "react";
-import { api, type Customer } from "../lib/api";
-import { cleanCustomerForm, customerFields, customerToForm, ivaOptions, type CustomerForm } from "./customerFormUtils";
+import { api, type Provider } from "../lib/api";
+import { cleanProviderForm, providerFields, providerToForm, type ProviderForm } from "./providerFormUtils";
 import ModalPortal from "./ModalPortal";
 
-type EditCustomerDialogProps = {
-  customer: Customer;
+type EditProviderDialogProps = {
+  provider: Provider;
   onClose: () => void;
   onSaved: () => void;
 };
 
-export default function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerDialogProps) {
-  const [form, setForm] = useState<CustomerForm>(() => customerToForm(customer));
+export default function EditProviderDialog({ provider, onClose, onSaved }: EditProviderDialogProps) {
+  const [form, setForm] = useState<ProviderForm>(() => providerToForm(provider));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const saveCustomer = async (event: FormEvent) => {
+  const saveProvider = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
 
-    const payload = cleanCustomerForm(form);
-    if (!payload.name) {
-      setError("El nombre del cliente no puede quedar vacio.");
+    const payload = cleanProviderForm(form);
+    if (!payload.nombre) {
+      setError("El nombre del proveedor no puede quedar vacio.");
       return;
     }
 
     setSaving(true);
 
     try {
-      await api.updateCustomer(customer.id, payload);
+      await api.updateProvider(provider.id, payload);
       onSaved();
       onClose();
     } catch (e) {
@@ -42,7 +42,7 @@ export default function EditCustomerDialog({ customer, onClose, onSaved }: EditC
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
       <div className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-lg bg-white shadow-xl dark:bg-slate-900">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">Editar cliente</h2>
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Editar proveedor</h2>
           <button
             type="button"
             aria-label="Cerrar"
@@ -62,35 +62,19 @@ export default function EditCustomerDialog({ customer, onClose, onSaved }: EditC
           </div>
         ) : null}
 
-        <form onSubmit={saveCustomer} className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
-          
-
-          {customerFields.map(({ key, label, required, type, maxLength }) => (
+        <form onSubmit={saveProvider} className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
+         
+          {providerFields.map(({ key, label, required, type, maxLength }) => (
             <label key={key} className="grid gap-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{label}</span>
-              {key === "iva" ? (
-                <select
-                  value={form.iva ?? ""}
-                  onChange={(e) => setForm((current) => ({ ...current, iva: e.target.value }))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-sky-300 focus:ring-2 focus:ring-sky-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-sky-800 dark:focus:ring-sky-900/50"
-                >
-                  <option value=""></option>
-                  {ivaOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={form[key] ?? ""}
-                  onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-sky-300 focus:ring-2 focus:ring-sky-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-sky-800 dark:focus:ring-sky-900/50"
-                  type={type ?? "text"}
-                  maxLength={maxLength}
-                  required={required}
-                />
-              )}
+              <input
+                value={form[key] ?? ""}
+                onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-violet-300 focus:ring-2 focus:ring-violet-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-violet-800 dark:focus:ring-violet-900/50"
+                type={type ?? "text"}
+                maxLength={maxLength}
+                required={required}
+              />
             </label>
           ))}
 
@@ -106,7 +90,7 @@ export default function EditCustomerDialog({ customer, onClose, onSaved }: EditC
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-sky-500/20 hover:from-sky-500 hover:to-cyan-500 disabled:opacity-60"
+              className="inline-flex items-center rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-500/20 hover:from-violet-500 hover:to-fuchsia-500 disabled:opacity-60"
             >
               {saving ? "Guardando..." : "Guardar cambios"}
             </button>

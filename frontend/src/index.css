@@ -9,7 +9,13 @@ body {
 }
 
 body {
+  margin: 0;
   font-family: "Roboto", Arial, Helvetica, sans-serif;
+}
+
+#app {
+  min-height: 100dvh;
+  width: 100%;
 }
 
 h1,

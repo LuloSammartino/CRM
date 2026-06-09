@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddProductDialog from "../components/AddProductDialog";
+import BulkUpdateProductsDialog from "../components/BulkUpdateProductsDialog";
 import DataTable, { type Column } from "../components/DataTable";
 import EditProductDialog from "../components/EditProductDialog";
+import ExportProductsDialog from "../components/ExportProductsDialog";
+import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
 import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
-import { api, type PaginatedResult, type Product, type ProductFilters } from "../lib/api";
+import { api, type PaginatedResult, type Product, type ProductFilters, type Provider } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 type ProductCacheEntry = {
@@ -22,6 +25,7 @@ function productCacheKey(filters: ProductFilters = {}, page = 0) {
   return JSON.stringify({
     nombre: filters.nombre?.trim() ?? "",
     rubro: filters.rubro?.trim() ?? "",
+    proveedorId: filters.proveedorId == null ? "" : String(filters.proveedorId),
     ordenPrecio: filters.ordenPrecio ?? "",
     page
   });
@@ -45,7 +49,7 @@ export default function InventoryPage() {
   const [page, setPage] = useState(0);
   const [totalRows, setTotalRows] = useState(0);
   const [rubros, setRubros] = useState<string[]>([]);
-  const [proveedores, setProveedores] = useState<number[]>([]);
+  const [proveedores, setProveedores] = useState<Provider[]>([]);
   const [rubro, setRubro] = useState("");
   const [ordenPrecio, setOrdenPrecio] = useState<ProductFilters["ordenPrecio"]>("");
   const [loading, setLoading] = useState(false);
@@ -53,6 +57,8 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showBulkUpdate, setShowBulkUpdate] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const requestIdRef = useRef(0);
@@ -107,7 +113,7 @@ export default function InventoryPage() {
   }, [page]);
 
   const refreshProductMetadata = useCallback(async () => {
-    const [rubrosList, proveedoresList] = await Promise.all([api.listProductRubros(), api.listProductProveedores()]);
+    const [rubrosList, proveedoresList] = await Promise.all([api.listProductRubros(), api.listProviders()]);
     setRubros(rubrosList);
     setProveedores(proveedoresList);
   }, []);
@@ -177,10 +183,10 @@ export default function InventoryPage() {
   const columns: Column<Product>[] = useMemo(
     () => [
       { key: "nombre", header: "Nombre", render: (p) => <span className="font-medium">{p.nombre}</span> },
-      { key: "costo", header: "Costo", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.costo ?? null) },
       { key: "precio1", header: "Precio 1", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.precio1) },
       { key: "precio2", header: "Precio 2", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.precio2 ?? null) },
       { key: "precio3", header: "Precio 3", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.precio3 ?? null) },
+      { key: "costo", header: "Costo", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.costo ?? null) },
       { key: "rubro", header: "Rubro", render: (p) => p.rubro ?? "-" },
       {
         key: "actions",
@@ -228,13 +234,29 @@ export default function InventoryPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <PageHeader title="Productos" tone="emerald" />
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:focus:ring-emerald-800"
-          >
-            + Agregar producto
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowBulkUpdate(true)}
+              className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-300 dark:border-amber-900/60 dark:bg-slate-950/40 dark:text-amber-200 dark:hover:bg-amber-950/40 dark:focus:ring-amber-800"
+            >
+              Actualizacion masiva
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowExport(true)}
+              className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-900/60 dark:bg-slate-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/40 dark:focus:ring-emerald-800"
+            >
+              Exportar Excel
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:focus:ring-emerald-800"
+            >
+              + Agregar producto
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(180px,260px)_minmax(180px,220px)]">
@@ -297,6 +319,19 @@ export default function InventoryPage() {
         />
       ) : null}
 
+      {showExport ? <ExportProductsDialog rubros={rubros} onClose={() => setShowExport(false)} /> : null}
+
+      {showBulkUpdate ? (
+        <BulkUpdateProductsDialog
+          rubros={rubros}
+          onClose={() => setShowBulkUpdate(false)}
+          onUpdated={async (updated) => {
+            await refreshProducts();
+            setSuccessMessage(`${updated} producto${updated === 1 ? "" : "s"} actualizado${updated === 1 ? "" : "s"} con exito.`);
+          }}
+        />
+      ) : null}
+
       <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100">
         <span>{resultLabel}</span>
         {hasActiveFilters ? (
@@ -340,6 +375,7 @@ export default function InventoryPage() {
       />
 
       {deletingProduct ? (
+        <ModalPortal>
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-slate-900">
             <div className="flex gap-4 px-5 py-5">
@@ -376,6 +412,7 @@ export default function InventoryPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
 
       {editing ? (

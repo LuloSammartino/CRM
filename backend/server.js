@@ -7,6 +7,7 @@ import customersRouter from "./src/routes/customers.routes.js";
 import productsRouter from "./src/routes/products.routes.js";
 import dashboardRouter from "./src/routes/dashboard.routes.js";
 import salesRouter from "./src/routes/sales.routes.js";
+import providersRouter from "./src/routes/providers.routes.js";
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/customers", customersRouter);
 app.use("/api/clients", customersRouter);
 app.use("/api/products", productsRouter);
+app.use("/api/proveedores", providersRouter);
 app.use("/api/sales", salesRouter);
 
 // Error handler simple (centralizado)

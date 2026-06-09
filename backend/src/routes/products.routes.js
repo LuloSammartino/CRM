@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  bulkUpdateProducts,
   createProduct,
   deleteProduct,
   getProductById,
@@ -19,6 +20,9 @@ router.get("/rubros", listProductRubros);
 
 // GET /api/products/proveedores
 router.get("/proveedores", listProductProveedores);
+
+// POST /api/products/actualizacion-masiva
+router.post("/actualizacion-masiva", bulkUpdateProducts);
 
 // GET /api/products/:id
 router.get("/:id", getProductById);

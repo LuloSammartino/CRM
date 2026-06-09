@@ -41,6 +41,7 @@ export default function AdminLayout() {
               <NavItem to="/" label="Dashboard" />
               <NavItem to="/clientes" label="Clientes" />
               <NavItem to="/productos" label="Productos" />
+              <NavItem to="/proveedores" label="Proveedores" />
             </nav>
           </div>
         </div>

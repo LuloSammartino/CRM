@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
 import DataTable, { type Column } from "../components/DataTable";
 import EditCustomerDialog from "../components/EditCustomerDialog";
+import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
 import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
+import { ivaOptions } from "../components/customerFormUtils";
 import { api, type Customer } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
@@ -13,7 +15,11 @@ const PAGE_SIZE = 100;
 export default function CustomersPage() {
   const [rows, setRows] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const [ivaFilter, setIvaFilter] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [debouncedPhoneSearch, setDebouncedPhoneSearch] = useState("");
+  const [debouncedIvaFilter, setDebouncedIvaFilter] = useState("");
   const [page, setPage] = useState(0);
   const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -25,11 +31,16 @@ export default function CustomersPage() {
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
   const load = useCallback(
-    (query = debouncedSearch, pageIndex = page) => {
+    (
+      query = debouncedSearch,
+      phone = debouncedPhoneSearch,
+      iva = debouncedIvaFilter,
+      pageIndex = page
+    ) => {
       setLoading(true);
       setError(null);
       api
-        .listCustomersPage({ q: query, limit: PAGE_SIZE, offset: pageIndex * PAGE_SIZE })
+        .listCustomersPage({ q: query, phone, iva, limit: PAGE_SIZE, offset: pageIndex * PAGE_SIZE })
         .then((result) => {
           setRows(result.rows);
           setTotalRows(result.total);
@@ -37,31 +48,33 @@ export default function CustomersPage() {
         .catch((e) => setError(String((e as Error)?.message ?? e)))
         .finally(() => setLoading(false));
     },
-    [debouncedSearch, page]
+    [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, page]
   );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setPage(0);
       setDebouncedSearch(search.trim());
+      setDebouncedPhoneSearch(phoneSearch.trim());
+      setDebouncedIvaFilter(ivaFilter.trim());
     }, 300);
 
     return () => window.clearTimeout(timeoutId);
-  }, [search]);
+  }, [ivaFilter, phoneSearch, search]);
 
   useEffect(() => {
-    load(debouncedSearch, page);
-  }, [debouncedSearch, load, page]);
+    load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
+  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
 
   useEffect(() => {
-    const onSale = () => load(debouncedSearch, page);
+    const onSale = () => load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
     window.addEventListener(CRM_SALE_CREATED_EVENT, onSale);
     return () => window.removeEventListener(CRM_SALE_CREATED_EVENT, onSale);
-  }, [debouncedSearch, load, page]);
+  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
 
   const refreshCustomers = useCallback(() => {
-    load(debouncedSearch, page);
-  }, [debouncedSearch, load, page]);
+    load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
+  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
 
   useEffect(() => {
     if (!successMessage) return undefined;
@@ -184,14 +197,15 @@ export default function CustomersPage() {
     []
   );
 
+  const hasActiveFilters = Boolean(debouncedSearch || debouncedPhoneSearch || debouncedIvaFilter);
   const resultLabel = loading
     ? "Cargando clientes..."
-    : `${totalRows} cliente${totalRows === 1 ? "" : "s"}${debouncedSearch ? " encontrados" : ""}`;
+    : `${totalRows} cliente${totalRows === 1 ? "" : "s"}${hasActiveFilters ? " encontrados" : ""}`;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader title="Clientes" subtitle="Base de contactos y compradores." tone="sky" />
+        <PageHeader title="Clientes" tone="sky" />
         <button
           type="button"
           onClick={() => setShowCreate(true)}
@@ -201,10 +215,11 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_auto]">
+      <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(180px,240px)_auto]">
         <label className="text-sm">
           <span className="font-medium text-slate-700 dark:text-slate-300">Buscar cliente</span>
           <input
+            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nombre del cliente..."
@@ -212,11 +227,42 @@ export default function CustomersPage() {
           />
         </label>
 
+        <label className="text-sm">
+          <span className="font-medium text-slate-700 dark:text-slate-300">Buscar telefono</span>
+          <input
+            type="search"
+            value={phoneSearch}
+            onChange={(e) => setPhoneSearch(e.target.value)}
+            placeholder="Numero de telefono..."
+            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/50"
+          />
+        </label>
+
+        <label className="text-sm">
+          <span className="font-medium text-slate-700 dark:text-slate-300">Filtrar IVA</span>
+          <select
+            value={ivaFilter}
+            onChange={(e) => setIvaFilter(e.target.value)}
+            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/50"
+          >
+            <option value="">Todos</option>
+            {ivaOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <div className="flex items-end">
           <button
             type="button"
-            onClick={() => setSearch("")}
-            disabled={!search.trim()}
+            onClick={() => {
+              setSearch("");
+              setPhoneSearch("");
+              setIvaFilter("");
+            }}
+            disabled={!search.trim() && !phoneSearch.trim() && !ivaFilter.trim()}
             className="h-[38px] rounded-md border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-800 shadow-sm hover:bg-sky-50 disabled:opacity-50 dark:border-sky-900/60 dark:bg-slate-950/40 dark:text-sky-200 dark:hover:bg-sky-950/40"
           >
             Limpiar
@@ -240,7 +286,7 @@ export default function CustomersPage() {
         rows={rows}
         loading={loading}
         loadingMessage="Buscando clientes..."
-        emptyMessage={debouncedSearch ? "No hay clientes que coincidan con la busqueda." : "No hay clientes registrados."}
+        emptyMessage={hasActiveFilters ? "No hay clientes que coincidan con la busqueda." : "No hay clientes registrados."}
         fixedLayout
       />
 
@@ -254,6 +300,7 @@ export default function CustomersPage() {
       />
 
       {deletingCustomer ? (
+        <ModalPortal>
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-slate-900">
             <div className="flex gap-4 px-5 py-5">
@@ -290,6 +337,7 @@ export default function CustomersPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
 
       {showCreate ? (

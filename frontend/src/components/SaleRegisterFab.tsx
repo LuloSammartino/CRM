@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, type Customer, type Product } from "../lib/api";
 import { notifySaleCreated } from "../lib/events";
+import ModalPortal from "./ModalPortal";
 
 function todayISODateLocal() {
   const d = new Date();
@@ -144,6 +145,7 @@ export default function SaleRegisterFab() {
       </button>
 
       {open ? (
+        <ModalPortal>
         <div
           className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
           role="dialog"
@@ -318,6 +320,7 @@ export default function SaleRegisterFab() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </>
   );

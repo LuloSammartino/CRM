@@ -7,6 +7,8 @@ import type {
   PaginationParams,
   Product,
   ProductFilters,
+  Provider,
+  ProviderFilters,
   SaleRow
 } from "./apiTypes";
 
@@ -19,6 +21,8 @@ export type {
   PaginationParams,
   Product,
   ProductFilters,
+  Provider,
+  ProviderFilters,
   SaleLineDisplay,
   SaleLineInput,
   SaleRow
@@ -52,6 +56,8 @@ export const api = {
   listCustomersPage: (filters?: CustomerFilters & PaginationParams) => {
     const params = new URLSearchParams();
     if (filters?.q?.trim()) params.set("q", filters.q.trim());
+    if (filters?.phone?.trim()) params.set("phone", filters.phone.trim());
+    if (filters?.iva?.trim()) params.set("iva", filters.iva.trim());
     params.set("limit", String(filters?.limit ?? 100));
     params.set("offset", String(filters?.offset ?? 0));
     return request<PaginatedResult<Customer>>(`/api/customers?${params.toString()}`);
@@ -61,10 +67,31 @@ export const api = {
   updateCustomer: (id: string, data: Partial<Omit<Customer, "id" | "createdAt">>) =>
     request<Customer>(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCustomer: (id: string) => request<unknown>(`/api/customers/${id}`, { method: "DELETE" }),
+  listProviders: (filters?: ProviderFilters) => {
+    const params = new URLSearchParams();
+    const query = filters?.nombre?.trim() || filters?.q?.trim() || "";
+    if (query) params.set("nombre", query);
+    const text = params.toString();
+    return request<Provider[]>(`/api/proveedores${text ? `?${text}` : ""}`);
+  },
+  listProvidersPage: (filters?: ProviderFilters & PaginationParams) => {
+    const params = new URLSearchParams();
+    const query = filters?.nombre?.trim() || filters?.q?.trim() || "";
+    if (query) params.set("nombre", query);
+    params.set("limit", String(filters?.limit ?? 100));
+    params.set("offset", String(filters?.offset ?? 0));
+    return request<PaginatedResult<Provider>>(`/api/proveedores?${params.toString()}`);
+  },
+  createProvider: (data: Omit<Provider, "id">) =>
+    request<Provider>("/api/proveedores", { method: "POST", body: JSON.stringify(data) }),
+  updateProvider: (id: string, data: Partial<Omit<Provider, "id">>) =>
+    request<Provider>(`/api/proveedores/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteProvider: (id: string) => request<unknown>(`/api/proveedores/${id}`, { method: "DELETE" }),
   listProducts: (filters?: ProductFilters) => {
     const params = new URLSearchParams();
     if (filters?.nombre?.trim()) params.set("nombre", filters.nombre.trim());
     if (filters?.rubro?.trim()) params.set("rubro", filters.rubro.trim());
+    if (filters?.proveedorId) params.set("proveedorId", String(filters.proveedorId));
     if (filters?.ordenPrecio) params.set("ordenPrecio", filters.ordenPrecio);
     const query = params.toString();
     return request<Product[]>(`/api/products${query ? `?${query}` : ""}`);
@@ -73,6 +100,7 @@ export const api = {
     const params = new URLSearchParams();
     if (filters?.nombre?.trim()) params.set("nombre", filters.nombre.trim());
     if (filters?.rubro?.trim()) params.set("rubro", filters.rubro.trim());
+    if (filters?.proveedorId) params.set("proveedorId", String(filters.proveedorId));
     if (filters?.ordenPrecio) params.set("ordenPrecio", filters.ordenPrecio);
     params.set("limit", String(filters?.limit ?? 100));
     params.set("offset", String(filters?.offset ?? 0));
@@ -92,6 +120,10 @@ export const api = {
   }) => request<Product>("/api/products", { method: "POST", body: JSON.stringify(data) }),
   updateProduct: (id: number | string, data: Partial<Product>) =>
     request<Product>(`/api/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  bulkUpdateProducts: (data:
+    | { mode: "rubro"; rubro: string; percentage: number | string }
+    | { mode: "proveedor"; proveedorId: number | string; percentage: number | string }) =>
+    request<{ updated: number }>("/api/products/actualizacion-masiva", { method: "POST", body: JSON.stringify(data) }),
   deleteProduct: (id: number | string) => request<void>(`/api/products/${id}`, { method: "DELETE" }),
   createSale: (data: CreateSalePayload) => request<unknown>("/api/sales", { method: "POST", body: JSON.stringify(data) }),
   listSalesPage: (params?: PaginationParams) => {
