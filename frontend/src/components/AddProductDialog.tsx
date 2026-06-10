@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { api, type Provider } from "../lib/api";
+import { buildRubroOptions } from "../lib/rubros";
 import {
   emptyProductForm,
   pricePairs,
@@ -21,6 +22,7 @@ export default function AddProductDialog({ rubros, proveedores, onClose, onCreat
   const [form, setForm] = useState<ProductEditorForm>(() => emptyProductForm());
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const rubroOptions = buildRubroOptions(rubros, form.rubro);
 
   const close = () => {
     if (creating) return;
@@ -106,7 +108,7 @@ export default function AddProductDialog({ rubros, proveedores, onClose, onCreat
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-0 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-950/40 dark:focus:border-emerald-800 dark:focus:ring-emerald-900/50"
             >
               <option value="">Sin rubro</option>
-              {rubros.map((item) => (
+              {rubroOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>

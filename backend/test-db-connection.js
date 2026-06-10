@@ -17,7 +17,11 @@ try {
   console.log("Hora del servidor DB:", result.hora_actual);
 } catch (error) {
   console.error("Error conectando a la base de datos:");
-  console.error(error.message);
+  console.error("Nombre:", error.name);
+  if (error.code) console.error("Codigo:", error.code);
+  console.error("Mensaje:", error.message);
+  if (error.cause) console.error("Causa:", error.cause);
+  if (error.stack) console.error(error.stack);
   process.exitCode = 1;
 } finally {
   await prisma.$disconnect();

@@ -15,6 +15,13 @@ function cleanProduct(product) {
   };
 }
 
+function rubroDisplayScore(value) {
+  const lower = value.toLocaleLowerCase("es");
+  const upper = value.toLocaleUpperCase("es");
+  const isAllUpper = lower !== upper && value === upper;
+  return isAllUpper ? 1 : 0;
+}
+
 const productListSelect = {
   id: true,
   nombre: true,
@@ -106,7 +113,6 @@ export async function listProducts(req, res, next) {
 export async function listProductRubros(_req, res, next) {
   try {
     const rows = await prisma.producto.findMany({
-      distinct: ["rubro"],
       select: { rubro: true },
       where: {
         rubro: {
@@ -116,9 +122,19 @@ export async function listProductRubros(_req, res, next) {
       orderBy: { rubro: "asc" }
     });
 
-    const rubros = [
-      ...new Set(rows.map((row) => row.rubro?.trim().toUpperCase()).filter(Boolean))
-    ].sort((a, b) => a.localeCompare(b, "es"));
+    const rubroByKey = new Map();
+    rows.forEach((row) => {
+      const rubro = row.rubro?.trim();
+      if (!rubro) return;
+
+      const key = rubro.toLocaleLowerCase("es");
+      const current = rubroByKey.get(key);
+      if (!current || rubroDisplayScore(rubro) < rubroDisplayScore(current)) {
+        rubroByKey.set(key, rubro);
+      }
+    });
+
+    const rubros = [...rubroByKey.values()].sort((a, b) => a.localeCompare(b, "es"));
     res.json(rubros);
   } catch (err) {
     next(err);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AddSaleButton from "../components/AddSaleButton";
 import DataTable, { type Column } from "../components/DataTable";
 import PageHeader from "../components/PageHeader";
+import SaleDetailDialog from "../components/SaleDetailDialog";
 import SummaryCard from "../components/SummaryCard";
 import { api, type DashboardMetrics, type SaleRow } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
@@ -43,6 +44,7 @@ function formatSaleDate(iso: string) {
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [sales, setSales] = useState<SaleRow[]>([]);
+  const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
   const [totalSales, setTotalSales] = useState(0);
   const [loadingSales, setLoadingSales] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +111,20 @@ export default function DashboardPage() {
             ${Number(sale.total).toFixed(2)}
           </span>
         )
+      },
+      {
+        key: "actions",
+        header: "Acciones",
+        className: "whitespace-nowrap text-right",
+        render: (sale) => (
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-950 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-900/50"
+            onClick={() => setSelectedSale(sale)}
+          >
+            Ver detalle
+          </button>
+        )
       }
     ],
     []
@@ -167,6 +183,8 @@ export default function DashboardPage() {
           emptyMessage="Todavia no hay ventas registradas."
         />
       </div>
+
+      {selectedSale ? <SaleDetailDialog sale={selectedSale} onClose={() => setSelectedSale(null)} /> : null}
     </div>
   );
 }

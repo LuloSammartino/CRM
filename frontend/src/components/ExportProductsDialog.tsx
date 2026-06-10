@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, type Product, type Provider } from "../lib/api";
+import { buildRubroOptions } from "../lib/rubros";
 import ModalPortal from "./ModalPortal";
 
 type PriceListKey = "precio1" | "precio2" | "precio3";
@@ -46,6 +47,7 @@ export default function ExportProductsDialog({ rubros, onClose }: ExportProducts
   const [error, setError] = useState<string | null>(null);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const rubroOptions = buildRubroOptions(rubros, rubro);
 
   useEffect(() => {
     setLoadingProviders(true);
@@ -178,7 +180,7 @@ export default function ExportProductsDialog({ rubros, onClose }: ExportProducts
                 required
               >
                 <option value="">Seleccionar rubro</option>
-                {rubros.map((item) => (
+                {rubroOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>

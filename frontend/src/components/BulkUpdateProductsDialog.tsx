@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, type Provider } from "../lib/api";
+import { buildRubroOptions } from "../lib/rubros";
 import ModalPortal from "./ModalPortal";
 
 type UpdateMode = "rubro" | "proveedor";
@@ -19,6 +20,7 @@ export default function BulkUpdateProductsDialog({ rubros, onClose, onUpdated }:
   const [error, setError] = useState<string | null>(null);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [saving, setSaving] = useState(false);
+  const rubroOptions = buildRubroOptions(rubros, rubro);
 
   useEffect(() => {
     setLoadingProviders(true);
@@ -154,7 +156,7 @@ export default function BulkUpdateProductsDialog({ rubros, onClose, onUpdated }:
                 required
               >
                 <option value="">Seleccionar rubro</option>
-                {rubros.map((item) => (
+                {rubroOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>

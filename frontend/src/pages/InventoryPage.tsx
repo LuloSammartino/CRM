@@ -10,6 +10,7 @@ import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
 import { api, type PaginatedResult, type Product, type ProductFilters, type Provider } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
+import { buildRubroOptions } from "../lib/rubros";
 
 type ProductCacheEntry = {
   result: PaginatedResult<Product>;
@@ -228,6 +229,7 @@ export default function InventoryPage() {
     : `${totalRows} producto${totalRows === 1 ? "" : "s"}${debouncedSearch || rubro ? " encontrados" : ""}`;
 
   const hasActiveFilters = Boolean(debouncedSearch || rubro || ordenPrecio);
+  const rubroOptions = buildRubroOptions(rubros, rubro);
 
   return (
     <div className="space-y-4">
@@ -281,7 +283,7 @@ export default function InventoryPage() {
               className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-900/50"
             >
               <option value="">Todos</option>
-              {rubros.map((item) => (
+              {rubroOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>

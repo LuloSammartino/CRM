@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, type Product, type Provider } from "../lib/api";
+import { buildRubroOptions } from "../lib/rubros";
 import {
   pricePairs,
   productToForm,
@@ -22,6 +23,7 @@ export default function EditProductDialog({ product, rubros, proveedores, onClos
   const [form, setForm] = useState<ProductEditorForm>(() => productToForm(product));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const rubroOptions = buildRubroOptions(rubros, form.rubro);
 
   const saveProduct = async () => {
     const nombre = String(form.nombre ?? "").trim();
@@ -96,7 +98,7 @@ export default function EditProductDialog({ product, rubros, proveedores, onClos
               className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value="">Sin rubro</option>
-              {rubros.map((item) => (
+              {rubroOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -170,7 +172,7 @@ export default function EditProductDialog({ product, rubros, proveedores, onClos
               <option value="">Sin proveedor</option>
               {proveedores.map((provider) => (
                 <option key={provider.id} value={provider.id}>
-                  {provider.nombre} - ID {provider.id}
+                  proveedor {provider.id} - {provider.nombre}
                 </option>
               ))}
             </select>
