@@ -21,6 +21,34 @@ export type Customer = {
   createdAt: string;
 };
 
+export type CurrentAccountDebtor = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  cuit?: string | null;
+  saldo: number;
+};
+
+export type CustomerMovement = {
+  id: number;
+  cliente_id: number;
+  venta_id: number | null;
+  tipo: "DEUDA" | "PAGO";
+  monto: number;
+  detalle: string | null;
+  fecha: string;
+};
+
+export type CreateCustomerPaymentPayload = {
+  monto: number;
+  detalle: string;
+};
+
+export type CreateCustomerPaymentResponse = {
+  ok: boolean;
+  message: string;
+};
+
 export type Product = {
   id: number;
   nombre: string;
@@ -59,6 +87,11 @@ export type PaginationParams = {
   offset?: number;
 };
 
+export type SaleFilters = {
+  product?: string;
+  customer?: string;
+};
+
 export type PaginatedResult<T> = {
   rows: T[];
   total: number;
@@ -88,6 +121,7 @@ export type CreateSalePayload =
       soldAt: string;
       customerId?: string | null;
       metodoPago?: string;
+      detalle?: string | null;
       items: SaleLineInput[];
     }
   | {

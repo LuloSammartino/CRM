@@ -173,7 +173,7 @@ export default function BulkUpdateProductsDialog({ rubros, onClose, onUpdated }:
                 <option value="">{loadingProviders ? "Cargando proveedores..." : "Seleccionar proveedor"}</option>
                 {providers.map((provider) => (
                   <option key={provider.id} value={provider.id}>
-                    {provider.nombre}
+                    Proveedor {provider.id}: {provider.nombre}
                   </option>
                 ))}
               </select>

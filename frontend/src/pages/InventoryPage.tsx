@@ -52,6 +52,7 @@ export default function InventoryPage() {
   const [rubros, setRubros] = useState<string[]>([]);
   const [proveedores, setProveedores] = useState<Provider[]>([]);
   const [rubro, setRubro] = useState("");
+  const [proveedorId, setProveedorId] = useState("");
   const [ordenPrecio, setOrdenPrecio] = useState<ProductFilters["ordenPrecio"]>("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -121,8 +122,8 @@ export default function InventoryPage() {
 
   const refreshProducts = useCallback(async () => {
     clearProductListCache();
-    await Promise.all([load({ nombre: debouncedSearch, rubro, ordenPrecio }, page, { force: true }), refreshProductMetadata()]);
-  }, [debouncedSearch, load, ordenPrecio, page, refreshProductMetadata, rubro]);
+    await Promise.all([load({ nombre: debouncedSearch, rubro, proveedorId, ordenPrecio }, page, { force: true }), refreshProductMetadata()]);
+  }, [debouncedSearch, load, ordenPrecio, page, proveedorId, refreshProductMetadata, rubro]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -134,8 +135,8 @@ export default function InventoryPage() {
   }, [search]);
 
   useEffect(() => {
-    void load({ nombre: debouncedSearch, rubro, ordenPrecio }, page).catch(() => undefined);
-  }, [debouncedSearch, load, ordenPrecio, page, rubro]);
+    void load({ nombre: debouncedSearch, rubro, proveedorId, ordenPrecio }, page).catch(() => undefined);
+  }, [debouncedSearch, load, ordenPrecio, page, proveedorId, rubro]);
 
   useEffect(() => {
     refreshProductMetadata().catch((e) => setError(String((e as Error)?.message ?? e)));
@@ -226,9 +227,9 @@ export default function InventoryPage() {
 
   const resultLabel = loading
     ? "Cargando productos..."
-    : `${totalRows} producto${totalRows === 1 ? "" : "s"}${debouncedSearch || rubro ? " encontrados" : ""}`;
+    : `${totalRows} producto${totalRows === 1 ? "" : "s"}${debouncedSearch || rubro || proveedorId ? " encontrados" : ""}`;
 
-  const hasActiveFilters = Boolean(debouncedSearch || rubro || ordenPrecio);
+  const hasActiveFilters = Boolean(debouncedSearch || rubro || proveedorId || ordenPrecio);
   const rubroOptions = buildRubroOptions(rubros, rubro);
 
   return (
@@ -261,7 +262,7 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(180px,260px)_minmax(180px,220px)]">
+        <div className="grid gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_minmax(180px,240px)_minmax(180px,220px)]">
           <label className="text-sm">
             <span className="font-medium text-slate-700 dark:text-slate-300">Buscar por nombre</span>
             <input
@@ -286,6 +287,25 @@ export default function InventoryPage() {
               {rubroOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-300">Proveedor</span>
+            <select
+              value={proveedorId}
+              onChange={(e) => {
+                setPage(0);
+                setProveedorId(e.target.value);
+              }}
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-900/50"
+            >
+              <option value="">Todos</option>
+              {proveedores.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.nombre}
                 </option>
               ))}
             </select>
@@ -343,6 +363,7 @@ export default function InventoryPage() {
             onClick={() => {
               setSearch("");
               setRubro("");
+              setProveedorId("");
               setOrdenPrecio("");
               setPage(0);
             }}

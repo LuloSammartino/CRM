@@ -83,9 +83,11 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerName, setSelectedCustomerName] = useState("");
   const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [detalle, setDetalle] = useState("");
   const [saleItems, setSaleItems] = useState<SaleItemForm[]>(() => [createSaleItem()]);
   const [activeProductItemId, setActiveProductItemId] = useState<number | null>(null);
   const [productLookupQuery, setProductLookupQuery] = useState("");
+  const isCuentaCorriente = metodoPago === "Cuenta Corriente";
 
   const saleTotal = useMemo(
     () =>
@@ -196,12 +198,18 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
       return;
     }
 
+    if (isCuentaCorriente && !customerId) {
+      setError("Selecciona un cliente para ventas en cuenta corriente.");
+      return;
+    }
+
     setSaving(true);
     try {
       await api.createSale({
         soldAt,
         customerId: customerId || null,
         metodoPago,
+        detalle: isCuentaCorriente ? detalle.trim() || null : null,
         items: saleItems.map((item) => ({
           productId: item.productId,
           qty: parseQty(item.qty),
@@ -268,7 +276,10 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
               <select
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-violet-400 dark:focus:ring-violet-900/50"
                 value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
+                onChange={(e) => {
+                  setMetodoPago(e.target.value);
+                  if (e.target.value !== "Cuenta Corriente") setDetalle("");
+                }}
               >
                 <option value="Efectivo">Efectivo</option>
                 <option value="Mercado Pago">Mercado Pago</option>
@@ -320,6 +331,19 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
                 </div>
               ) : null}
             </label>
+
+            {isCuentaCorriente ? (
+              <label className="block text-sm sm:col-span-2">
+                <span className="font-medium text-slate-700 dark:text-slate-300">Detalle</span>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-violet-400 dark:focus:ring-violet-900/50"
+                  value={detalle}
+                  onChange={(e) => setDetalle(e.target.value)}
+                  placeholder="Detalle para cuenta corriente"
+                />
+              </label>
+            ) : null}
           </div>
 
           <div className="space-y-3">

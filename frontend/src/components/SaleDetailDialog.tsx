@@ -82,7 +82,7 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
                   <tr key={`${line.productName}-${index}`} className="bg-white dark:bg-slate-900">
                     <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
                       <div className="font-semibold">{line.productName}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">SKU {line.sku}</div>
+                      
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-300">{line.qty}</td>
                     <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900 dark:text-slate-100">

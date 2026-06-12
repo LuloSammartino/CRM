@@ -62,7 +62,7 @@ export default function SalesPage() {
             {sale.lines.map((line, index) => (
               <li key={index} className="text-slate-700 dark:text-slate-300">
                 <span className="font-semibold text-violet-700 dark:text-violet-300">{line.qty}x</span>{" "}
-                {line.productName} <span className="text-slate-500 dark:text-slate-500">({line.sku})</span>
+                {line.productName}
               </li>
             ))}
           </ul>

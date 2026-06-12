@@ -7,6 +7,8 @@ import SummaryCard from "../components/SummaryCard";
 import { api, type DashboardMetrics, type SaleRow } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
+const SALES_PAGE_SIZE = 8;
+
 function formatSaleDate(iso: string) {
   try {
     const inputDate = new Date(iso);
@@ -45,18 +47,22 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
+  const [productSearch, setProductSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
+  const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState("");
   const [totalSales, setTotalSales] = useState(0);
   const [loadingSales, setLoadingSales] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (product = debouncedProductSearch, customer = debouncedCustomerSearch) => {
     setError(null);
     setLoadingSales(true);
 
     try {
       const [dashboardMetrics, salesPage] = await Promise.all([
         api.dashboard(),
-        api.listSalesPage({ limit: 8, offset: 0 })
+        api.listSalesPage({ product, customer, limit: SALES_PAGE_SIZE, offset: 0 })
       ]);
       setMetrics(dashboardMetrics);
       setSales(salesPage.rows);
@@ -66,14 +72,23 @@ export default function DashboardPage() {
     } finally {
       setLoadingSales(false);
     }
-  }, []);
+  }, [debouncedCustomerSearch, debouncedProductSearch]);
 
   useEffect(() => {
-    load();
-    const onSale = () => load();
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedProductSearch(productSearch.trim());
+      setDebouncedCustomerSearch(customerSearch.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [customerSearch, productSearch]);
+
+  useEffect(() => {
+    load(debouncedProductSearch, debouncedCustomerSearch);
+    const onSale = () => load(debouncedProductSearch, debouncedCustomerSearch);
     window.addEventListener(CRM_SALE_CREATED_EVENT, onSale);
     return () => window.removeEventListener(CRM_SALE_CREATED_EVENT, onSale);
-  }, [load]);
+  }, [debouncedCustomerSearch, debouncedProductSearch, load]);
 
   const saleColumns: Column<SaleRow>[] = useMemo(
     () => [
@@ -130,6 +145,11 @@ export default function DashboardPage() {
     []
   );
 
+  const hasActiveSaleFilters = Boolean(debouncedProductSearch || debouncedCustomerSearch);
+  const saleResultLabel = loadingSales
+    ? "Buscando ventas..."
+    : `${totalSales} venta${totalSales === 1 ? "" : "s"}${hasActiveSaleFilters ? " encontradas" : " totales"}`;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -170,8 +190,46 @@ export default function DashboardPage() {
             
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 text-xs font-semibold text-amber-950 dark:border-amber-700 dark:from-amber-950/50 dark:to-orange-950/40 dark:text-amber-100">
-            {totalSales} totales
+            {saleResultLabel}
           </span>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_auto]">
+          <label className="text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-300">Buscar por producto</span>
+            <input
+              type="search"
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              placeholder="Nombre o codigo..."
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-amber-400 dark:focus:ring-amber-900/50"
+            />
+          </label>
+
+          <label className="text-sm">
+            <span className="font-medium text-slate-700 dark:text-slate-300">Buscar por cliente</span>
+            <input
+              type="search"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              placeholder="Nombre o codigo..."
+              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-amber-400 dark:focus:ring-amber-900/50"
+            />
+          </label>
+
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={() => {
+                setProductSearch("");
+                setCustomerSearch("");
+              }}
+              disabled={!productSearch.trim() && !customerSearch.trim()}
+              className="h-[38px] rounded-md border border-amber-200 bg-white px-3 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-50 disabled:opacity-50 dark:border-amber-900/60 dark:bg-slate-950/40 dark:text-amber-200 dark:hover:bg-amber-950/40"
+            >
+              Limpiar
+            </button>
+          </div>
         </div>
 
         <DataTable
@@ -179,8 +237,8 @@ export default function DashboardPage() {
           columns={saleColumns}
           rows={sales}
           loading={loadingSales}
-          loadingMessage="Cargando ventas recientes..."
-          emptyMessage="Todavia no hay ventas registradas."
+          loadingMessage={hasActiveSaleFilters ? "Buscando ventas..." : "Cargando ventas recientes..."}
+          emptyMessage={hasActiveSaleFilters ? "No hay ventas que coincidan con la busqueda." : "Todavia no hay ventas registradas."}
         />
       </div>
 

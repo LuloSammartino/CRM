@@ -20,6 +20,11 @@ function parsePagination(query) {
   };
 }
 
+function cleanSearchText(value) {
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text : null;
+}
+
 function parseDateOnly(value) {
   if (!value) return undefined;
   const text = String(value);
@@ -80,8 +85,16 @@ const createSaleSchema = z.object({
   customerId: z.coerce.number().int().positive().optional().nullable(),
   clienteId: z.coerce.number().int().positive().optional().nullable(),
   metodoPago: z.string().trim().min(1).max(50).default("Efectivo"),
+  detalle: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+    z.string().trim().min(1).optional().nullable()
+  ),
   items: z.array(saleItemSchema).min(1)
 });
+
+function isCurrentAccountPayment(value) {
+  return String(value ?? "").trim().toLowerCase() === "cuenta corriente";
+}
 
 function normalizeSaleItem(item) {
   const productoId = item.productoId ?? item.productId;
@@ -113,15 +126,49 @@ const saleInclude = {
 export async function listSales(req, res, next) {
   try {
     const pagination = parsePagination(req.query);
+    const productSearch = cleanSearchText(req.query.product ?? req.query.producto);
+    const customerSearch = cleanSearchText(req.query.customer ?? req.query.cliente);
+    const productIdSearch = Number(productSearch);
+    const where = {
+      ...(productSearch
+        ? {
+            detalles: {
+              some: {
+                producto: {
+                  is: {
+                    OR: [
+                      { nombre: { contains: productSearch, mode: "insensitive" } },
+                      ...(Number.isInteger(productIdSearch) && productIdSearch > 0 ? [{ id: productIdSearch }] : [])
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        : {}),
+      ...(customerSearch
+        ? {
+            cliente: {
+              is: {
+                OR: [
+                  { nombre: { contains: customerSearch, mode: "insensitive" } },
+                  { razonSocial: { contains: customerSearch, mode: "insensitive" } }
+                ]
+              }
+            }
+          }
+        : {})
+    };
 
     const [sales, total] = await Promise.all([
       prisma.venta.findMany({
+        where,
         orderBy: [{ fecha: "desc" }, { hora: "desc" }, { id: "desc" }],
         skip: pagination.offset,
         take: pagination.limit,
         include: saleInclude
       }),
-      prisma.venta.count()
+      prisma.venta.count({ where })
     ]);
 
     res.json({
@@ -140,9 +187,17 @@ export async function createSale(req, res, next) {
     const input = createSaleSchema.parse(req.body);
     const clienteId = input.clienteId ?? input.customerId ?? null;
     const fecha = parseDateOnly(input.fecha ?? input.soldAt);
+    const isCuentaCorriente = isCurrentAccountPayment(input.metodoPago);
 
     if (fecha === null) {
       return res.status(400).json({ error: "ValidationError", message: "fecha invalida. Usa YYYY-MM-DD." });
+    }
+
+    if (isCuentaCorriente && !clienteId) {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Las ventas en cuenta corriente requieren un cliente."
+      });
     }
 
     const items = input.items.map(normalizeSaleItem);
@@ -178,7 +233,7 @@ export async function createSale(req, res, next) {
         throw err;
       }
 
-      return tx.venta.create({
+      const sale = await tx.venta.create({
         data: {
           ...(fecha ? { fecha } : {}),
           clienteId,
@@ -195,6 +250,15 @@ export async function createSale(req, res, next) {
         },
         include: saleInclude
       });
+
+      if (isCuentaCorriente) {
+        await tx.$executeRaw`
+          INSERT INTO movimientos_ctacte (cliente_id, venta_id, tipo, monto, detalle, fecha)
+          VALUES (${clienteId}, ${sale.id}, 'DEUDA', ${total}, ${input.detalle ?? null}, CURRENT_TIMESTAMP)
+        `;
+      }
+
+      return sale;
     });
 
     res.status(201).json(cleanSale(sale));

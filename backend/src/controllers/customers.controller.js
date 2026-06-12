@@ -81,6 +81,147 @@ export async function listCustomers(req, res, next) {
   }
 }
 
+export async function getCustomerBalance(req, res, next) {
+  try {
+    const id = parseCustomerId(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "id de cliente invalido" });
+    }
+
+    const [row] = await prisma.$queryRaw`
+      SELECT COALESCE(
+        SUM(
+          CASE
+            WHEN tipo = 'DEUDA' THEN monto
+            WHEN tipo = 'PAGO' THEN -monto
+            ELSE 0
+          END
+        ),
+        0
+      ) AS saldo
+      FROM movimientos_ctacte
+      WHERE cliente_id = ${id}
+    `;
+
+    res.json({ saldo: Number(row?.saldo ?? 0) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listCustomersWithDebt(_req, res, next) {
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT
+        c.id,
+        c.nombre,
+        c.telefono,
+        c.cuit,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo = 'DEUDA' THEN m.monto
+              WHEN m.tipo = 'PAGO' THEN -m.monto
+              ELSE 0
+            END
+          ),
+          0
+        ) AS saldo
+      FROM movimientos_ctacte m
+      INNER JOIN clientes c ON c.id = m.cliente_id
+      GROUP BY c.id, c.nombre, c.telefono, c.cuit
+      HAVING COALESCE(
+        SUM(
+          CASE
+            WHEN m.tipo = 'DEUDA' THEN m.monto
+            WHEN m.tipo = 'PAGO' THEN -m.monto
+            ELSE 0
+          END
+        ),
+        0
+      ) > 0
+      ORDER BY saldo DESC, c.nombre ASC
+    `;
+
+    res.json(
+      rows.map((row) => ({
+        id: String(row.id),
+        name: row.nombre?.trim() ?? "",
+        phone: row.telefono?.trim() || null,
+        cuit: row.cuit?.trim() || null,
+        saldo: Number(row.saldo)
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+}
+
+const customerPaymentSchema = z.object({
+  monto: z.number().positive(),
+  detalle: z.string().min(1)
+});
+
+export async function createCustomerPayment(req, res, next) {
+  try {
+    const id = parseCustomerId(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "id de cliente invalido" });
+    }
+
+    const input = customerPaymentSchema.parse(req.body);
+    const [movement] = await prisma.$queryRaw`
+      INSERT INTO movimientos_ctacte (cliente_id, venta_id, tipo, monto, detalle, fecha)
+      VALUES (${id}, NULL, 'PAGO', ${input.monto}, ${input.detalle}, CURRENT_TIMESTAMP)
+      RETURNING id, cliente_id, venta_id, tipo, monto, detalle, fecha
+    `;
+
+    res.status(201).json({
+      ok: true,
+      message: "Pago registrado correctamente",
+      movimiento: {
+        id: movement.id,
+        cliente_id: movement.cliente_id,
+        venta_id: movement.venta_id,
+        tipo: movement.tipo,
+        monto: Number(movement.monto),
+        detalle: movement.detalle,
+        fecha: movement.fecha
+      }
+    });
+  } catch (err) {
+    if (err?.name === "ZodError") {
+      return res.status(400).json({ error: "ValidationError", details: err.errors });
+    }
+    next(err);
+  }
+}
+
+export async function listCustomerMovements(req, res, next) {
+  try {
+    const id = parseCustomerId(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "id de cliente invalido" });
+    }
+
+    const movements = await prisma.$queryRaw`
+      SELECT id, cliente_id, venta_id, tipo, monto, detalle, fecha
+      FROM movimientos_ctacte
+      WHERE cliente_id = ${id}
+      ORDER BY fecha DESC
+    `;
+
+    res.json(
+      movements.map((movement) => ({
+        ...movement,
+        monto: Number(movement.monto)
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+}
+
 const customerSchema = z.object({
   name: z.string().min(1),
   email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
@@ -187,4 +328,3 @@ export async function deleteCustomer(req, res, next) {
     next(err);
   }
 }
-

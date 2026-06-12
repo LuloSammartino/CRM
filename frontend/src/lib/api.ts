@@ -1,7 +1,11 @@
 import type {
+  CreateCustomerPaymentPayload,
+  CreateCustomerPaymentResponse,
   CreateSalePayload,
+  CurrentAccountDebtor,
   Customer,
   CustomerFilters,
+  CustomerMovement,
   DashboardMetrics,
   PaginatedResult,
   PaginationParams,
@@ -9,13 +13,18 @@ import type {
   ProductFilters,
   Provider,
   ProviderFilters,
+  SaleFilters,
   SaleRow
 } from "./apiTypes";
 
 export type {
+  CreateCustomerPaymentPayload,
+  CreateCustomerPaymentResponse,
   CreateSalePayload,
+  CurrentAccountDebtor,
   Customer,
   CustomerFilters,
+  CustomerMovement,
   DashboardMetrics,
   PaginatedResult,
   PaginationParams,
@@ -23,6 +32,7 @@ export type {
   ProductFilters,
   Provider,
   ProviderFilters,
+  SaleFilters,
   SaleLineDisplay,
   SaleLineInput,
   SaleRow
@@ -67,6 +77,13 @@ export const api = {
   updateCustomer: (id: string, data: Partial<Omit<Customer, "id" | "createdAt">>) =>
     request<Customer>(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCustomer: (id: string) => request<unknown>(`/api/customers/${id}`, { method: "DELETE" }),
+  listCurrentAccountDebtors: () => request<CurrentAccountDebtor[]>("/api/clientes/cuenta-corriente/deudores"),
+  listCustomerMovements: (id: string) => request<CustomerMovement[]>(`/api/clientes/${id}/movimientos`),
+  createCustomerPayment: (id: string, data: CreateCustomerPaymentPayload) =>
+    request<CreateCustomerPaymentResponse>(`/api/clientes/${id}/pagos`, {
+      method: "POST",
+      body: JSON.stringify(data)
+    }),
   listProviders: (filters?: ProviderFilters) => {
     const params = new URLSearchParams();
     const query = filters?.nombre?.trim() || filters?.q?.trim() || "";
@@ -126,8 +143,10 @@ export const api = {
     request<{ updated: number }>("/api/products/actualizacion-masiva", { method: "POST", body: JSON.stringify(data) }),
   deleteProduct: (id: number | string) => request<void>(`/api/products/${id}`, { method: "DELETE" }),
   createSale: (data: CreateSalePayload) => request<unknown>("/api/sales", { method: "POST", body: JSON.stringify(data) }),
-  listSalesPage: (params?: PaginationParams) => {
+  listSalesPage: (params?: PaginationParams & SaleFilters) => {
     const query = new URLSearchParams();
+    if (params?.product?.trim()) query.set("product", params.product.trim());
+    if (params?.customer?.trim()) query.set("customer", params.customer.trim());
     query.set("limit", String(params?.limit ?? 50));
     query.set("offset", String(params?.offset ?? 0));
     return request<PaginatedResult<SaleRow>>(`/api/sales?${query.toString()}`);

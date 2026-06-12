@@ -30,6 +30,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/customers", customersRouter);
 app.use("/api/clients", customersRouter);
+app.use("/api/clientes", customersRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/proveedores", providersRouter);
 app.use("/api/sales", salesRouter);

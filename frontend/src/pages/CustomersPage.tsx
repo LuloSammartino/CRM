@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
+import CurrentAccountDebtorsDialog from "../components/CurrentAccountDebtorsDialog";
 import DataTable, { type Column } from "../components/DataTable";
 import EditCustomerDialog from "../components/EditCustomerDialog";
 import ModalPortal from "../components/ModalPortal";
@@ -7,7 +8,7 @@ import PageHeader from "../components/PageHeader";
 import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
 import { ivaOptions } from "../components/customerFormUtils";
-import { api, type Customer } from "../lib/api";
+import { api, type CurrentAccountDebtor, type Customer } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 const PAGE_SIZE = 100;
@@ -27,6 +28,8 @@ export default function CustomersPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showCurrentAccount, setShowCurrentAccount] = useState(false);
+  const [currentAccountDebtors, setCurrentAccountDebtors] = useState<CurrentAccountDebtor[]>([]);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
@@ -51,6 +54,13 @@ export default function CustomersPage() {
     [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, page]
   );
 
+  const refreshCurrentAccountDebtors = useCallback(() => {
+    api
+      .listCurrentAccountDebtors()
+      .then(setCurrentAccountDebtors)
+      .catch(() => setCurrentAccountDebtors([]));
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setPage(0);
@@ -67,14 +77,21 @@ export default function CustomersPage() {
   }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
 
   useEffect(() => {
-    const onSale = () => load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
+    const onSale = () => {
+      load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
+      refreshCurrentAccountDebtors();
+    };
     window.addEventListener(CRM_SALE_CREATED_EVENT, onSale);
     return () => window.removeEventListener(CRM_SALE_CREATED_EVENT, onSale);
-  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
+  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page, refreshCurrentAccountDebtors]);
 
   const refreshCustomers = useCallback(() => {
     load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
   }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
+
+  useEffect(() => {
+    refreshCurrentAccountDebtors();
+  }, [refreshCurrentAccountDebtors]);
 
   useEffect(() => {
     if (!successMessage) return undefined;
@@ -206,13 +223,25 @@ export default function CustomersPage() {
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader title="Clientes" tone="sky" />
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-sky-500/20 hover:from-sky-500 hover:to-cyan-500 focus:outline-none focus:ring-2 focus:ring-sky-300 dark:focus:ring-sky-800"
-        >
-          + Agregar cliente
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCurrentAccount(true)}
+            className="inline-flex h-12 w-40 flex-col items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900 shadow-sm hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100 dark:hover:bg-emerald-950/50"
+          >
+            <span className="w-full truncate text-center">Cuenta corriente</span>
+            <span className="w-full truncate text-center text-xs font-medium text-emerald-700 dark:text-emerald-200">
+              {currentAccountDebtors.length === 0 ? "Sin deudores" : `${currentAccountDebtors.length} deudores`}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-sky-500/20 hover:from-sky-500 hover:to-cyan-500 focus:outline-none focus:ring-2 focus:ring-sky-300 dark:focus:ring-sky-800"
+          >
+            + Agregar cliente
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(180px,240px)_auto]">
@@ -358,6 +387,14 @@ export default function CustomersPage() {
             refreshCustomers();
             setSuccessMessage("Cliente modificado con exito.");
           }}
+        />
+      ) : null}
+
+      {showCurrentAccount ? (
+        <CurrentAccountDebtorsDialog
+          initialRows={currentAccountDebtors}
+          onClose={() => setShowCurrentAccount(false)}
+          onRowsChange={setCurrentAccountDebtors}
         />
       ) : null}
 
