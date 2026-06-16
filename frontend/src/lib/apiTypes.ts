@@ -90,6 +90,9 @@ export type PaginationParams = {
 export type SaleFilters = {
   product?: string;
   customer?: string;
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export type PaginatedResult<T> = {

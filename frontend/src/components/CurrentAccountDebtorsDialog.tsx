@@ -164,7 +164,6 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
           <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h2 className="text-base font-bold text-slate-900 dark:text-white">Cuenta corriente</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300">Clientes con saldo pendiente</p>
             </div>
             <button
               type="button"
@@ -179,6 +178,10 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
           </div>
 
           <div className="grid gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+              <div className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Clientes con deuda</div>
+              <div className="mt-1 text-xl font-bold tabular-nums text-slate-900 dark:text-white">{rows.length}</div>
+            </div>
             <div className={[
               "rounded-lg border px-4 py-3",
               hasDebtors
@@ -193,10 +196,6 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                 "mt-1 text-xl font-bold tabular-nums",
                 hasDebtors ? "text-red-900 dark:text-red-100" : "text-emerald-900 dark:text-emerald-100"
               ].join(" ")}>{formatMoney(totalDebt)}</div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
-              <div className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Clientes con deuda</div>
-              <div className="mt-1 text-xl font-bold tabular-nums text-slate-900 dark:text-white">{rows.length}</div>
             </div>
           </div>
 

@@ -124,8 +124,6 @@ export const api = {
     return request<PaginatedResult<Product>>(`/api/products?${params.toString()}`);
   },
   listProductRubros: () => request<string[]>("/api/products/rubros"),
-  listProductProveedores: () => request<number[]>("/api/products/proveedores"),
-  getProduct: (id: number | string) => request<Product>(`/api/products/${id}`),
   createProduct: (data: {
     nombre: string;
     rubro?: string | null;
@@ -147,12 +145,15 @@ export const api = {
     const query = new URLSearchParams();
     if (params?.product?.trim()) query.set("product", params.product.trim());
     if (params?.customer?.trim()) query.set("customer", params.customer.trim());
+    if (params?.date?.trim()) query.set("date", params.date.trim());
+    if (params?.dateFrom?.trim()) query.set("dateFrom", params.dateFrom.trim());
+    if (params?.dateTo?.trim()) query.set("dateTo", params.dateTo.trim());
     query.set("limit", String(params?.limit ?? 50));
     query.set("offset", String(params?.offset ?? 0));
     return request<PaginatedResult<SaleRow>>(`/api/sales?${query.toString()}`);
   },
-  listSales: async () => {
-    const result = await api.listSalesPage({ limit: 100, offset: 0 });
+  listSales: async (filters?: SaleFilters) => {
+    const result = await api.listSalesPage({ ...filters, limit: 100, offset: 0 });
     return result.rows;
   }
 };

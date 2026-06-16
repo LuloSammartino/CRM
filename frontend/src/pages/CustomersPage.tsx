@@ -227,12 +227,9 @@ export default function CustomersPage() {
           <button
             type="button"
             onClick={() => setShowCurrentAccount(true)}
-            className="inline-flex h-12 w-40 flex-col items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900 shadow-sm hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100 dark:hover:bg-emerald-950/50"
+            className="inline-flex  items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900 shadow-sm hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100 dark:hover:bg-emerald-950/50"
           >
-            <span className="w-full truncate text-center">Cuenta corriente</span>
-            <span className="w-full truncate text-center text-xs font-medium text-emerald-700 dark:text-emerald-200">
-              {currentAccountDebtors.length === 0 ? "Sin deudores" : `${currentAccountDebtors.length} deudores`}
-            </span>
+          Cuenta corriente
           </button>
           <button
             type="button"

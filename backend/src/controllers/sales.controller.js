@@ -128,8 +128,25 @@ export async function listSales(req, res, next) {
     const pagination = parsePagination(req.query);
     const productSearch = cleanSearchText(req.query.product ?? req.query.producto);
     const customerSearch = cleanSearchText(req.query.customer ?? req.query.cliente);
+    const saleDate = parseDateOnly(req.query.date ?? req.query.fecha);
+    const saleDateFrom = parseDateOnly(req.query.dateFrom ?? req.query.fechaDesde);
+    const saleDateTo = parseDateOnly(req.query.dateTo ?? req.query.fechaHasta);
     const productIdSearch = Number(productSearch);
+
+    if (saleDate === null || saleDateFrom === null || saleDateTo === null) {
+      return res.status(400).json({ error: "ValidationError", message: "fecha invalida. Usa YYYY-MM-DD." });
+    }
+
+    if (saleDateFrom && saleDateTo && saleDateFrom.getTime() > saleDateTo.getTime()) {
+      return res.status(400).json({ error: "ValidationError", message: "fechaDesde no puede ser posterior a fechaHasta." });
+    }
+
     const where = {
+      ...(saleDate
+        ? { fecha: saleDate }
+        : saleDateFrom || saleDateTo
+          ? { fecha: { ...(saleDateFrom ? { gte: saleDateFrom } : {}), ...(saleDateTo ? { lte: saleDateTo } : {}) } }
+          : {}),
       ...(productSearch
         ? {
             detalles: {
