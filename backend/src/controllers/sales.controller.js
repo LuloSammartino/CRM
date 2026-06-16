@@ -15,7 +15,7 @@ function parsePagination(query) {
   }
 
   return {
-    limit: Math.min(limit, 100),
+    limit: Math.min(limit, 1000),
     offset: Number.isInteger(offset) && offset > 0 ? offset : 0
   };
 }

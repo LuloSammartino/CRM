@@ -55,3 +55,11 @@ CREATE TABLE ventas_detalle (
     -- Conecta el detalle con el catálogo maestro
     CONSTRAINT fk_producto FOREIGN KEY (producto_id) REFERENCES producto(id)
 );
+
+CREATE TABLE movimientos_caja (
+  id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  concepto VARCHAR(255) NOT NULL,
+  monto NUMERIC(12, 2) NOT NULL,
+  tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('entrada', 'salida')),
+  fecha DATE DEFAULT CURRENT_DATE
+);

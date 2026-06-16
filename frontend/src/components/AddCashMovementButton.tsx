@@ -1,0 +1,148 @@
+import { useState, type FormEvent } from "react";
+import { api } from "../lib/api";
+import { notifyCashMovementCreated } from "../lib/events";
+import ModalPortal from "./ModalPortal";
+
+type Props = {
+  onCreated?: () => void;
+};
+
+function formatAmountInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 7);
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+export default function AddCashMovementButton({ onCreated }: Props) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [concepto, setConcepto] = useState("");
+  const [monto, setMonto] = useState("");
+
+  const close = () => {
+    if (saving) return;
+    setOpen(false);
+    setError(null);
+  };
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+
+    if (!concepto.trim()) {
+      setError("Ingresa un concepto.");
+      return;
+    }
+    const amount = Number(monto.replace(/\D/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999) {
+      setError("Ingresa un monto valido.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.createCashMovement({ concepto: concepto.trim(), monto: amount, tipo: "salida" });
+      notifyCashMovementCreated();
+      onCreated?.();
+      setConcepto("");
+      setMonto("");
+      setOpen(false);
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 shadow-sm hover:bg-violet-50 dark:border-violet-900/60 dark:bg-slate-950/40 dark:text-violet-200 dark:hover:bg-violet-950/40"
+      >
+        + Agregar gasto
+      </button>
+
+      {open ? (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="absolute inset-0 bg-slate-900/50"
+              aria-label="Cerrar"
+              onClick={close}
+              disabled={saving}
+            />
+            <div className="relative z-[110] w-full max-w-lg rounded-t-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-lg">
+              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Agregar gasto</h2>
+                <button
+                  type="button"
+                  aria-label="Cerrar"
+                  onClick={close}
+                  disabled={saving}
+                  className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-60 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={submit} className="grid gap-4 px-5 py-4">
+                {error ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-200">
+                    {error}
+                  </div>
+                ) : null}
+
+                <label className="grid gap-1 text-sm">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">Concepto</span>
+                  <input
+                    value={concepto}
+                    onChange={(e) => setConcepto(e.target.value)}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                    required
+                  />
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Monto</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={monto}
+                      onChange={(e) => setMonto(formatAmountInput(e.target.value))}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={close}
+                    disabled={saving}
+                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+                  >
+                    {saving ? "Guardando..." : "Guardar"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalPortal>
+      ) : null}
+    </>
+  );
+}

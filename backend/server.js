@@ -8,6 +8,7 @@ import productsRouter from "./src/routes/products.routes.js";
 import dashboardRouter from "./src/routes/dashboard.routes.js";
 import salesRouter from "./src/routes/sales.routes.js";
 import providersRouter from "./src/routes/providers.routes.js";
+import cashMovementsRouter from "./src/routes/cash-movements.routes.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use("/api/clientes", customersRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/proveedores", providersRouter);
 app.use("/api/sales", salesRouter);
+app.use("/api/movimientos-caja", cashMovementsRouter);
 
 // Error handler simple (centralizado)
 // Nota: si agregas validaciones/errores custom, normalízalos aquí.

@@ -39,6 +39,21 @@ export type CustomerMovement = {
   fecha: string;
 };
 
+export type CashMovement = {
+  id: string;
+  concepto: string;
+  tipo: "entrada" | "salida";
+  monto: number;
+  fecha: string;
+};
+
+export type CreateCashMovementPayload = {
+  concepto: string;
+  tipo: "entrada" | "salida";
+  monto: number | string;
+  fecha?: string;
+};
+
 export type CreateCustomerPaymentPayload = {
   monto: number;
   detalle: string;

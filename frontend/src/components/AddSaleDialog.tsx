@@ -288,7 +288,20 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
             </label>
 
             <label className="relative block text-sm sm:col-span-2">
-              <span className="font-medium text-slate-700 dark:text-slate-300">Cliente</span>
+              <span className="flex items-center gap-2">
+                <span className="font-medium text-slate-700 dark:text-slate-300">Cliente</span>
+                <button
+                  type="button"
+                  className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-800 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200"
+                  onClick={() => {
+                    setCustomerId("");
+                    setCustomerSearch("Cliente de mostrador");
+                    setSelectedCustomerName("Cliente de mostrador");
+                  }}
+                >
+                  Cliente de mostrador
+                </button>
+              </span>
               <input
                 type="search"
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-violet-400 dark:focus:ring-violet-900/50"

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AddCashMovementButton from "../components/AddCashMovementButton";
 import AddSaleButton from "../components/AddSaleButton";
 import DataTable, { type Column } from "../components/DataTable";
 import ModalPortal from "../components/ModalPortal";
@@ -321,7 +322,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader title="Dashboard" tone="violet" />
-        <AddSaleButton onCreated={load} />
+        <div className="flex flex-wrap gap-2">
+          <AddCashMovementButton />
+          <AddSaleButton onCreated={load} />
+        </div>
       </div>
 
       {error ? (

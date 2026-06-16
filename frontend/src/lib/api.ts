@@ -1,4 +1,6 @@
 import type {
+  CashMovement,
+  CreateCashMovementPayload,
   CreateCustomerPaymentPayload,
   CreateCustomerPaymentResponse,
   CreateSalePayload,
@@ -18,6 +20,8 @@ import type {
 } from "./apiTypes";
 
 export type {
+  CashMovement,
+  CreateCashMovementPayload,
   CreateCustomerPaymentPayload,
   CreateCustomerPaymentResponse,
   CreateSalePayload,
@@ -62,6 +66,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   dashboard: () => request<DashboardMetrics>("/api/dashboard"),
+  listCashMovementsPage: (params?: PaginationParams & { date?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.date?.trim()) query.set("date", params.date.trim());
+    query.set("limit", String(params?.limit ?? 100));
+    query.set("offset", String(params?.offset ?? 0));
+    return request<PaginatedResult<CashMovement>>(`/api/movimientos-caja?${query.toString()}`);
+  },
+  createCashMovement: (data: CreateCashMovementPayload) =>
+    request<CashMovement>("/api/movimientos-caja", { method: "POST", body: JSON.stringify(data) }),
   listCustomers: () => request<Customer[]>("/api/customers"),
   listCustomersPage: (filters?: CustomerFilters & PaginationParams) => {
     const params = new URLSearchParams();
