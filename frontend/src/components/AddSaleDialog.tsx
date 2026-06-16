@@ -35,6 +35,7 @@ const priceLabels: Record<Exclude<PriceMode, "manual">, string> = {
   precio2: "Precio 2",
   precio3: "Precio 3"
 };
+const COUNTER_CUSTOMER_NAME = "CLIENTE DE MOSTRADOR";
 
 let nextSaleItemId = 1;
 
@@ -125,6 +126,30 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
   }, [productLookupQuery]);
 
   const showCustomerResults = customerSearch.trim() !== selectedCustomerName.trim();
+
+  async function selectCounterCustomer() {
+    setError(null);
+    setLoadingCustomers(true);
+
+    try {
+      const result = await api.listCustomersPage({ q: COUNTER_CUSTOMER_NAME, limit: 10, offset: 0 });
+      const customer = result.rows.find((item) => item.name.trim().toUpperCase() === COUNTER_CUSTOMER_NAME);
+
+      if (!customer) {
+        setError('No existe el cliente "CLIENTE DE MOSTRADOR".');
+        return;
+      }
+
+      setCustomers([customer]);
+      setCustomerId(customer.id);
+      setCustomerSearch(customer.name);
+      setSelectedCustomerName(customer.name);
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    } finally {
+      setLoadingCustomers(false);
+    }
+  }
 
   function updateSaleItem(itemId: number, changes: Partial<SaleItemForm>) {
     setSaleItems((current) =>
@@ -293,11 +318,7 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
                 <button
                   type="button"
                   className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-800 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200"
-                  onClick={() => {
-                    setCustomerId("");
-                    setCustomerSearch("Cliente de mostrador");
-                    setSelectedCustomerName("Cliente de mostrador");
-                  }}
+                  onClick={selectCounterCustomer}
                 >
                   Cliente de mostrador
                 </button>

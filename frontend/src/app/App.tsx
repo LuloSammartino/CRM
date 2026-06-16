@@ -13,9 +13,9 @@ export default function App() {
     <Suspense fallback={null}>
       <Routes>
         <Route element={<AdminLayout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/ventas" element={<DashboardPage />} />
           <Route path="/clientes" element={<CustomersPage />} />
-          <Route path="/movimientos" element={<CashMovementsPage />} />
+          <Route path="/" element={<CashMovementsPage />} />
           <Route path="/productos" element={<InventoryPage />} />
           <Route path="/proveedores" element={<ProvidersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

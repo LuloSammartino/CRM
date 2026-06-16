@@ -117,6 +117,8 @@ export async function listCustomersWithDebt(_req, res, next) {
         c.nombre,
         c.telefono,
         c.cuit,
+        m.venta_id,
+        MIN(m.fecha) AS fecha_deuda,
         COALESCE(
           SUM(
             CASE
@@ -129,7 +131,8 @@ export async function listCustomersWithDebt(_req, res, next) {
         ) AS saldo
       FROM movimientos_ctacte m
       INNER JOIN clientes c ON c.id = m.cliente_id
-      GROUP BY c.id, c.nombre, c.telefono, c.cuit
+      WHERE m.venta_id IS NOT NULL
+      GROUP BY c.id, c.nombre, c.telefono, c.cuit, m.venta_id
       HAVING COALESCE(
         SUM(
           CASE
@@ -140,7 +143,7 @@ export async function listCustomersWithDebt(_req, res, next) {
         ),
         0
       ) > 0
-      ORDER BY saldo DESC, c.nombre ASC
+      ORDER BY fecha_deuda DESC, c.nombre ASC
     `;
 
     res.json(
@@ -149,6 +152,8 @@ export async function listCustomersWithDebt(_req, res, next) {
         name: row.nombre?.trim() ?? "",
         phone: row.telefono?.trim() || null,
         cuit: row.cuit?.trim() || null,
+        ventaId: row.venta_id == null ? null : String(row.venta_id),
+        fecha: row.fecha_deuda,
         saldo: Number(row.saldo)
       }))
     );
@@ -159,7 +164,8 @@ export async function listCustomersWithDebt(_req, res, next) {
 
 const customerPaymentSchema = z.object({
   monto: z.number().positive(),
-  detalle: z.string().min(1)
+  detalle: z.string().min(1),
+  ventaId: z.coerce.number().int().positive().optional()
 });
 
 export async function createCustomerPayment(req, res, next) {
@@ -170,9 +176,34 @@ export async function createCustomerPayment(req, res, next) {
     }
 
     const input = customerPaymentSchema.parse(req.body);
+    const currentDebt = input.ventaId
+      ? await prisma.$queryRaw`
+          SELECT COALESCE(
+            SUM(
+              CASE
+                WHEN tipo = 'DEUDA' THEN monto
+                WHEN tipo = 'PAGO' THEN -monto
+                ELSE 0
+              END
+            ),
+            0
+          ) AS saldo
+          FROM movimientos_ctacte
+          WHERE cliente_id = ${id} AND venta_id = ${input.ventaId}
+        `
+      : null;
+
+    const debtBalance = Number(currentDebt?.[0]?.saldo ?? 0);
+    if (input.ventaId && debtBalance <= 0) {
+      return res.status(404).json({ error: "NotFound", message: "Deuda no encontrada" });
+    }
+    if (input.ventaId && input.monto > debtBalance) {
+      return res.status(400).json({ error: "ValidationError", message: "El pago no puede superar la deuda." });
+    }
+
     const [movement] = await prisma.$queryRaw`
       INSERT INTO movimientos_ctacte (cliente_id, venta_id, tipo, monto, detalle, fecha)
-      VALUES (${id}, NULL, 'PAGO', ${input.monto}, ${input.detalle}, CURRENT_TIMESTAMP)
+      VALUES (${id}, ${input.ventaId ?? null}, 'PAGO', ${input.monto}, ${input.detalle}, CURRENT_TIMESTAMP)
       RETURNING id, cliente_id, venta_id, tipo, monto, detalle, fecha
     `;
 
@@ -200,6 +231,7 @@ export async function createCustomerPayment(req, res, next) {
 export async function listCustomerMovements(req, res, next) {
   try {
     const id = parseCustomerId(req.params.id);
+    const ventaId = parseCustomerId(req.query.ventaId);
     if (!id) {
       return res.status(400).json({ error: "ValidationError", message: "id de cliente invalido" });
     }
@@ -208,6 +240,7 @@ export async function listCustomerMovements(req, res, next) {
       SELECT id, cliente_id, venta_id, tipo, monto, detalle, fecha
       FROM movimientos_ctacte
       WHERE cliente_id = ${id}
+        AND (${ventaId}::int IS NULL OR venta_id = ${ventaId})
       ORDER BY fecha DESC
     `;
 

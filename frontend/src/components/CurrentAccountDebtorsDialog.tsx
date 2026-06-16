@@ -24,6 +24,12 @@ function formatDate(value: string) {
   }
 }
 
+function formatAmountInput(value: string) {
+  const [integer = "", decimal] = value.replace(/,/g, "").replace(/[^\d.]/g, "").split(".");
+  const formattedInteger = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decimal === undefined ? formattedInteger : `${formattedInteger}.${decimal.slice(0, 2)}`;
+}
+
 export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRowsChange }: CurrentAccountDebtorsDialogProps) {
   const [rows, setRows] = useState<CurrentAccountDebtor[]>(() => initialRows ?? []);
   const [loading, setLoading] = useState(false);
@@ -63,7 +69,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
 
   const totalDebt = useMemo(() => rows.reduce((sum, row) => sum + row.saldo, 0), [rows]);
   const hasDebtors = rows.length > 0;
-  const parsedAmount = Number(amount);
+  const parsedAmount = Number(amount.replace(/,/g, ""));
   const movementsWithBalance = useMemo(() => {
     let balance = 0;
 
@@ -81,13 +87,13 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
     setViewing(null);
     setMovementRows([]);
     setMovementError(null);
-    setAmount(String(row.saldo));
+    setAmount(formatAmountInput(String(row.saldo)));
     
     setPaymentError(null);
   }
 
   async function toggleMovements(row: CurrentAccountDebtor) {
-    if (viewing?.id === row.id) {
+    if (viewing?.id === row.id && viewing.ventaId === row.ventaId) {
       setViewing(null);
       setMovementRows([]);
       setMovementError(null);
@@ -102,7 +108,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
     setLoadingMovements(true);
 
     try {
-      const movements = await api.listCustomerMovements(row.id);
+      const movements = await api.listCustomerMovements(row.id, row.ventaId);
       setMovementRows(movements);
     } catch (e) {
       setMovementError(String((e as Error)?.message ?? e));
@@ -138,10 +144,11 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
     try {
       await api.createCustomerPayment(paying.id, {
         monto: parsedAmount,
-        detalle: cleanDetail
+        detalle: cleanDetail,
+        ventaId: paying.ventaId
       });
-      if (viewing?.id === paying.id) {
-        const movements = await api.listCustomerMovements(paying.id);
+      if (viewing?.id === paying.id && viewing.ventaId === paying.ventaId) {
+        const movements = await api.listCustomerMovements(paying.id, paying.ventaId);
         setMovementRows(movements);
       }
       setPaying(null);
@@ -179,7 +186,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
 
           <div className="grid gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:grid-cols-2">
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
-              <div className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Clientes con deuda</div>
+              <div className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Deudas pendientes</div>
               <div className="mt-1 text-xl font-bold tabular-nums text-slate-900 dark:text-white">{rows.length}</div>
             </div>
             <div className={[
@@ -221,9 +228,16 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {rows.map((row) => (
-                    <Fragment key={row.id}>
+                    <Fragment key={`${row.id}-${row.ventaId ?? "global"}`}>
                       <tr className="hover:bg-emerald-50/50 dark:hover:bg-slate-800/60">
-                        <td className="px-5 py-3 font-semibold text-slate-900 dark:text-slate-100">{row.name}</td>
+                        <td className="px-5 py-3 font-semibold text-slate-900 dark:text-slate-100">
+                          <span className="block">{row.name}</span>
+                          {row.ventaId ? (
+                            <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Venta #{row.ventaId}{row.fecha ? ` - ${formatDate(row.fecha)}` : ""}
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{row.phone ?? "-"}</td>
                         <td className="px-5 py-3 text-slate-600 dark:text-slate-300">{row.cuit ?? "-"}</td>
                         <td className="px-5 py-3 text-right font-bold tabular-nums text-red-700 dark:text-red-300">{formatMoney(row.saldo)}</td>
@@ -253,14 +267,14 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                           </div>
                         </td>
                       </tr>
-                      {viewing?.id === row.id ? (
+                      {viewing?.id === row.id && viewing.ventaId === row.ventaId ? (
                         <tr key={`${row.id}-movements`} className="bg-slate-50/80 dark:bg-slate-950/40">
                           <td colSpan={5} className="px-5 py-4">
                             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
                               <div className="flex flex-col gap-1 border-b border-slate-200 px-4 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                   <div className="text-sm font-bold text-slate-900 dark:text-white">Movimientos de deuda</div>
-                                  <div className="text-xs text-slate-500 dark:text-slate-400">{row.name}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400">{row.name}{row.ventaId ? ` - Venta #${row.ventaId}` : ""}</div>
                                 </div>
                                 <div className="text-sm font-bold tabular-nums text-red-700 dark:text-red-300">
                                   Deuda actual: {formatMoney(row.saldo)}
@@ -319,7 +333,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                           </td>
                         </tr>
                       ) : null}
-                      {paying?.id === row.id ? (
+                      {paying?.id === row.id && paying.ventaId === row.ventaId ? (
                         <tr key={`${row.id}-payment`} className="bg-emerald-50/70 dark:bg-emerald-950/20">
                           <td colSpan={5} className="px-5 py-4">
                             <form onSubmit={submitPayment} className="grid gap-3 md:grid-cols-[minmax(180px,240px)_minmax(220px,1fr)_auto_auto] md:items-end">
@@ -327,18 +341,16 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                                 <span className="font-medium text-slate-700 dark:text-slate-300">Monto</span>
                                 <div className="mt-1 flex overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800">
                                   <input
-                                    type="number"
-                                    min="0"
-                                    max={row.saldo}
-                                    step="0.01"
+                                    type="text"
+                                    inputMode="decimal"
                                     value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
+                                    onChange={(e) => setAmount(formatAmountInput(e.target.value))}
                                     disabled={saving}
                                     className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-slate-900 outline-none disabled:opacity-60 dark:text-slate-100"
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => setAmount(String(row.saldo))}
+                                    onClick={() => setAmount(formatAmountInput(String(row.saldo)))}
                                     disabled={saving}
                                     className="border-l border-slate-300 px-3 text-xs font-bold text-emerald-800 hover:bg-emerald-50 disabled:opacity-60 dark:border-slate-600 dark:text-emerald-200 dark:hover:bg-emerald-950/40"
                                   >

@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import AddCashMovementButton from "../components/AddCashMovementButton";
 import AddSaleButton from "../components/AddSaleButton";
 import DataTable, { type Column } from "../components/DataTable";
 import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
 import SaleDetailDialog from "../components/SaleDetailDialog";
-import SummaryCard from "../components/SummaryCard";
-import { api, type DashboardMetrics, type SaleRow } from "../lib/api";
+import { api, type SaleRow } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 const SALES_PAGE_SIZE = 8;
@@ -131,7 +129,6 @@ export default function DashboardPage() {
   const dayPickerRef = useRef<HTMLInputElement>(null);
   const rangeFromPickerRef = useRef<HTMLInputElement>(null);
   const rangeToPickerRef = useRef<HTMLInputElement>(null);
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
   const [productSearch, setProductSearch] = useState("");
@@ -154,18 +151,14 @@ export default function DashboardPage() {
     setLoadingSales(true);
 
     try {
-      const [dashboardMetrics, salesPage] = await Promise.all([
-        api.dashboard(),
-        api.listSalesPage({
-          product,
-          customer,
-          dateFrom: dateFilter?.from,
-          dateTo: dateFilter?.to,
-          limit: SALES_PAGE_SIZE,
-          offset: 0
-        })
-      ]);
-      setMetrics(dashboardMetrics);
+      const salesPage = await api.listSalesPage({
+        product,
+        customer,
+        dateFrom: dateFilter?.from,
+        dateTo: dateFilter?.to,
+        limit: SALES_PAGE_SIZE,
+        offset: 0
+      });
       setSales(salesPage.rows);
       
     } catch (e) {
@@ -321,9 +314,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader title="Dashboard" tone="violet" />
+        <PageHeader title="Ventas" tone="violet" />
         <div className="flex flex-wrap gap-2">
-          <AddCashMovementButton />
           <AddSaleButton onCreated={load} />
         </div>
       </div>
@@ -334,26 +326,7 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard accent="sky" label="Total clientes" value={metrics?.totalCustomers ?? "-"} />
-        <SummaryCard
-          accent="amber"
-          label="Total Productos "
-          value={metrics?.totalProducts ?? "-"}
-        />
-        <SummaryCard 
-        accent="violet" 
-        label="Ventas hoy" 
-        value={metrics?.todaySalesCount ?? "-"}
-        hint= "5 Cuenta corriente"
-        />
-        <SummaryCard
-          accent="emerald"
-          label="Total vendido hoy"
-          value={metrics ? `$${Number(metrics.todaySalesTotal).toFixed(2)}` : "-"}
-        />
-      </div>
-
+      
       <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{salesTitle}</h2>

@@ -26,6 +26,8 @@ export type CurrentAccountDebtor = {
   name: string;
   phone?: string | null;
   cuit?: string | null;
+  ventaId?: string | null;
+  fecha?: string | null;
   saldo: number;
 };
 
@@ -57,6 +59,7 @@ export type CreateCashMovementPayload = {
 export type CreateCustomerPaymentPayload = {
   monto: number;
   detalle: string;
+  ventaId?: string | null;
 };
 
 export type CreateCustomerPaymentResponse = {

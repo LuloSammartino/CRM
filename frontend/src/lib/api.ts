@@ -91,7 +91,8 @@ export const api = {
     request<Customer>(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCustomer: (id: string) => request<unknown>(`/api/customers/${id}`, { method: "DELETE" }),
   listCurrentAccountDebtors: () => request<CurrentAccountDebtor[]>("/api/clientes/cuenta-corriente/deudores"),
-  listCustomerMovements: (id: string) => request<CustomerMovement[]>(`/api/clientes/${id}/movimientos`),
+  listCustomerMovements: (id: string, ventaId?: string | null) =>
+    request<CustomerMovement[]>(`/api/clientes/${id}/movimientos${ventaId ? `?ventaId=${encodeURIComponent(ventaId)}` : ""}`),
   createCustomerPayment: (id: string, data: CreateCustomerPaymentPayload) =>
     request<CreateCustomerPaymentResponse>(`/api/clientes/${id}/pagos`, {
       method: "POST",

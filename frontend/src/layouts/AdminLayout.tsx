@@ -38,9 +38,9 @@ export default function AdminLayout() {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <nav className="flex flex-wrap gap-1.5">
-              <NavItem to="/" label="Dashboard" />
+              <NavItem to="/" label="Caja Diaria" />
+              <NavItem to="/ventas" label="Ventas" />
               <NavItem to="/clientes" label="Clientes" />
-              <NavItem to="/movimientos" label="Movimientos" />
               <NavItem to="/productos" label="Productos" />
               <NavItem to="/proveedores" label="Proveedores" />
             </nav>
