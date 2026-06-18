@@ -43,19 +43,35 @@ export type {
 } from "./apiTypes";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:4000";
+const AUTH_TOKEN_KEY = "crm_auth_token";
+
+export function getAuthToken() {
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string) {
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function clearAuthToken() {
+  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
     headers: {
       "Cache-Control": "no-cache",
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {})
     },
     ...options
   });
 
   if (!res.ok) {
+    if (res.status === 401) clearAuthToken();
     const text = await res.text().catch(() => "");
     throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
   }
@@ -65,6 +81,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  login: (password: string) =>
+    request<{ token: string; user: { id: string; username: string } }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ password })
+    }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    request<{ ok: true }>("/api/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify(data)
+    }),
   dashboard: () => request<DashboardMetrics>("/api/dashboard"),
   listCashMovementsPage: (params?: PaginationParams & { date?: string }) => {
     const query = new URLSearchParams();

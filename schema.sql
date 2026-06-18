@@ -63,3 +63,9 @@ CREATE TABLE movimientos_caja (
   tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('entrada', 'salida')),
   fecha DATE DEFAULT CURRENT_DATE
 );
+
+CREATE TABLE usuarios (
+    id INT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);

@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Product } from "../lib/api";
+import { normalizeRubro } from "../lib/rubros";
 
 export const pricePairs = [
   { price: "precio1", pct: "precio1Pct", label: "precio 1" },
@@ -52,7 +53,7 @@ export function emptyProductForm(): ProductEditorForm {
     precio1Pct: "",
     precio2Pct: "",
     precio3Pct: "",
-    rubro: "",
+    rubro: normalizeRubro(""),
     proveedorId: ""
   };
 }
@@ -67,7 +68,7 @@ export function productToForm(product: Product): ProductEditorForm {
     precio1Pct: profitPercent(product.costo, product.precio1),
     precio2Pct: profitPercent(product.costo, product.precio2),
     precio3Pct: profitPercent(product.costo, product.precio3),
-    rubro: product.rubro ?? "",
+    rubro: normalizeRubro(product.rubro),
     proveedorId: product.proveedorId ?? ""
   };
 }

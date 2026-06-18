@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, type CurrentAccountDebtor, type CustomerMovement } from "../lib/api";
+import { notifyCashMovementCreated } from "../lib/events";
 import ModalPortal from "./ModalPortal";
 
 type CurrentAccountDebtorsDialogProps = {
@@ -133,11 +134,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
       return;
     }
 
-    const cleanDetail = detail.trim();
-    if (!cleanDetail) {
-      setPaymentError("Ingresa un detalle.");
-      return;
-    }
+    const cleanDetail = detail.trim() || `Pago deuda ${paying.name}`;
 
     setSaving(true);
 
@@ -147,6 +144,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
         detalle: cleanDetail,
         ventaId: paying.ventaId
       });
+      notifyCashMovementCreated();
       if (viewing?.id === paying.id && viewing.ventaId === paying.ventaId) {
         const movements = await api.listCustomerMovements(paying.id, paying.ventaId);
         setMovementRows(movements);

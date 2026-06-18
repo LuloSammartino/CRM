@@ -68,14 +68,17 @@ export async function listProviders(req, res, next) {
   try {
     const search = providerNameQuery(req.query);
     const pagination = parsePagination(req.query);
-    const where = search
-      ? {
-          nombre: {
-            contains: search,
-            mode: "insensitive"
+    const where = {
+      isActive: true,
+      ...(search
+        ? {
+            nombre: {
+              contains: search,
+              mode: "insensitive"
+            }
           }
-        }
-      : {};
+        : {})
+    };
 
     if (pagination) {
       const [providers, total] = await Promise.all([
@@ -162,7 +165,7 @@ export async function deleteProvider(req, res, next) {
       return res.status(400).json({ error: "ValidationError", message: "id de proveedor invalido" });
     }
 
-    await prisma.proveedor.delete({ where: { id } });
+    await prisma.proveedor.update({ where: { id }, data: { isActive: false } });
     res.status(204).send();
   } catch (err) {
     if (err?.code === "P2025") {
@@ -185,6 +188,7 @@ export async function searchProvidersByName(req, res, next) {
 
     const providers = await prisma.proveedor.findMany({
       where: {
+        isActive: true,
         nombre: {
           contains: search,
           mode: "insensitive"

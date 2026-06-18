@@ -19,6 +19,7 @@ model Producto {
   creado      DateTime  @default(now()) @db.Date
   modificado  DateTime? @db.Date
   proveedorId Decimal?  @map("proveedor_id") @db.Decimal
+  isActive    Boolean   @default(true) @map("is_active")
 
   ventasDetalle VentaDetalle[]
 
@@ -37,6 +38,7 @@ model Cliente {
   iva         String? @db.VarChar(30)
   tipo        String? @db.VarChar(40)
   razonSocial String? @map("razon_social") @db.VarChar(60)
+  isActive    Boolean @default(true) @map("is_active")
 
   ventas Venta[]
 
@@ -51,6 +53,7 @@ model Proveedor {
   email      String? @db.VarChar(50)
   cuit       String? @db.VarChar(11)
   aclaracion String? @db.VarChar(50)
+  isActive   Boolean @default(true) @map("is_active")
 
   @@map("proveedores")
 }

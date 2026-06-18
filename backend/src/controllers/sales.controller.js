@@ -230,7 +230,7 @@ export async function createSale(req, res, next) {
 
     const sale = await prisma.$transaction(async (tx) => {
       if (clienteId) {
-        const cliente = await tx.cliente.findUnique({ where: { id: clienteId }, select: { id: true } });
+        const cliente = await tx.cliente.findFirst({ where: { id: clienteId, isActive: true }, select: { id: true } });
         if (!cliente) {
           const err = new Error("CLIENT_NOT_FOUND");
           err.code = "CLIENT_NOT_FOUND";
@@ -239,7 +239,7 @@ export async function createSale(req, res, next) {
       }
 
       const products = await tx.producto.findMany({
-        where: { id: { in: productIds } },
+        where: { id: { in: productIds }, isActive: true },
         select: { id: true }
       });
       if (products.length !== productIds.length) {

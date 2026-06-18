@@ -12,7 +12,7 @@ type CashRow = {
   id: string;
   fecha: string;
   concepto: string;
-  tipo: "venta" | "gasto";
+  tipo: "venta" | "deuda" | "gasto";
   monto: number;
 };
 
@@ -79,44 +79,46 @@ export default function CashMovementsPage() {
 
   const rows = useMemo<CashRow[]>(
     () => [
-      ...sales.map((sale) => ({
-        id: `sale-${sale.id}`,
-        fecha: sale.fecha ?? sale.createdAt.slice(0, 10),
-        concepto: saleConcept(sale),
-        tipo: "venta" as const,
-        monto: Number(sale.total)
-      })),
+      ...sales
+        .filter((sale) => sale.metodoPago !== "Cuenta Corriente")
+        .map((sale) => ({
+          id: `sale-${sale.id}`,
+          fecha: sale.fecha ?? sale.createdAt.slice(0, 10),
+          concepto: saleConcept(sale),
+          tipo: "venta" as const,
+          monto: Number(sale.total)
+        })),
       ...expenses.map((expense) => ({
         id: `expense-${expense.id}`,
         fecha: expense.fecha,
         concepto: expense.concepto,
-        tipo: "gasto" as const,
+        tipo: expense.tipo === "entrada" ? "deuda" as const : "gasto" as const,
         monto: expense.monto
       }))
     ],
     [expenses, sales]
   );
   const visibleRows = useMemo(
-    () => rows.filter((row) => viewMode === "todo" || (viewMode === "ingreso" ? row.tipo === "venta" : row.tipo === "gasto")),
+    () => rows.filter((row) => viewMode === "todo" || (viewMode === "ingreso" ? row.tipo !== "gasto" : row.tipo === "gasto")),
     [rows, viewMode]
   );
 
-  const totalSales = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.monto, 0);
-  const balance = totalSales - totalExpenses;
+  const totalIncome = rows.filter((row) => row.tipo !== "gasto").reduce((sum, row) => sum + row.monto, 0);
+  const totalExpenses = rows.filter((row) => row.tipo === "gasto").reduce((sum, row) => sum + row.monto, 0);
+  const balance = totalIncome - totalExpenses;
 
   const columns: Column<CashRow>[] = useMemo(
     () => [
       { key: "fecha", header: "Fecha", className: "whitespace-nowrap", render: (row) => fmtDate(row.fecha) },
       { key: "concepto", header: "Concepto", render: (row) => <span className="font-medium">{row.concepto}</span> },
-      { key: "tipo", header: "Tipo", className: "whitespace-nowrap", render: (row) => row.tipo === "venta" ? "Venta" : "Gasto" },
+      { key: "tipo", header: "Tipo", className: "whitespace-nowrap", render: (row) => row.tipo === "venta" ? "Venta" : row.tipo === "deuda" ? "Deuda" : "Gasto" },
       {
         key: "monto",
         header: "Monto",
         className: "whitespace-nowrap text-right",
         render: (row) => (
-          <span className={row.tipo === "venta" ? "font-bold text-emerald-700 dark:text-emerald-300" : "font-bold text-red-700 dark:text-red-300"}>
-            {row.tipo === "venta" ? "+" : "-"}{fmtMoney(row.monto)}
+          <span className={row.tipo !== "gasto" ? "font-bold text-emerald-700 dark:text-emerald-300" : "font-bold text-red-700 dark:text-red-300"}>
+            {row.tipo !== "gasto" ? "+" : "-"}{fmtMoney(row.monto)}
           </span>
         )
       }
@@ -143,7 +145,7 @@ export default function CashMovementsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(260px,1.25fr)_minmax(220px,1fr)]">
-        <div className={`rounded-2xl border p-6 shadow-sm ${balanceCardClass(balance, totalSales)}`}>
+        <div className={`rounded-2xl border p-6 shadow-sm ${balanceCardClass(balance, totalIncome)}`}>
           <div className="text-sm font-semibold">Balance total</div>
           <div className="mt-8 text-4xl font-bold tabular-nums">{fmtMoney(balance)}</div>
         </div>
@@ -153,8 +155,8 @@ export default function CashMovementsPage() {
             <div className="mt-3 text-2xl font-bold tabular-nums">{fmtMoney(totalExpenses)}</div>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-100 p-4 text-emerald-950 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-            <div className="text-sm font-semibold">Ventas</div>
-            <div className="mt-3 text-2xl font-bold tabular-nums">{fmtMoney(totalSales)}</div>
+            <div className="text-sm font-semibold">Ingresos</div>
+            <div className="mt-3 text-2xl font-bold tabular-nums">{fmtMoney(totalIncome)}</div>
           </div>
         </div>
       </div>

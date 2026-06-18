@@ -9,6 +9,7 @@ import dashboardRouter from "./src/routes/dashboard.routes.js";
 import salesRouter from "./src/routes/sales.routes.js";
 import providersRouter from "./src/routes/providers.routes.js";
 import cashMovementsRouter from "./src/routes/cash-movements.routes.js";
+import { changePassword, login, requireAuth } from "./src/auth.js";
 
 dotenv.config();
 
@@ -28,6 +29,9 @@ app.use("/api", (_req, res, next) => {
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // API routes
+app.post("/api/auth/login", login);
+app.use("/api", requireAuth);
+app.post("/api/auth/change-password", changePassword);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/customers", customersRouter);
 app.use("/api/clients", customersRouter);

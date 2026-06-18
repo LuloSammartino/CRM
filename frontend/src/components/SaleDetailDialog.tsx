@@ -17,7 +17,58 @@ function formatSaleDate(iso: string) {
   }
 }
 
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+}
+
 export default function SaleDetailDialog({ sale, onClose }: Props) {
+  function printSale() {
+    const printWindow = window.open("", "_blank", "width=800,height=600");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title></title>
+          <style>
+            @page { margin: 0; }
+            body { font-family: Arial, sans-serif; color: #111827; padding: 24px; }
+            h1 { font-size: 20px; margin: 0 0 8px; }
+            p { margin: 4px 0; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+            th, td.num { text-align: right; }
+            .total { margin-top: 20px; text-align: right; font-size: 18px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <h1>Detalle de venta</h1>
+          <p><strong>Fecha:</strong> ${escapeHtml(formatSaleDate(sale.createdAt))}</p>
+          <p><strong>Cliente:</strong> ${escapeHtml(sale.customerName)}</p>
+          <p><strong>Pago:</strong> ${escapeHtml(sale.metodoPago || "Sin especificar")}</p>
+          <table>
+            <thead>
+              <tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio cobrado</th><th class="num">Subtotal</th></tr>
+            </thead>
+            <tbody>
+              ${sale.lines.map((line) => `
+                <tr>
+                  <td>${escapeHtml(line.productName)}</td>
+                  <td class="num">${line.qty}</td>
+                  <td class="num">${formatMoney(line.unitPrice)}</td>
+                  <td class="num">${formatMoney(line.lineTotal)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <div class="total">Total: ${formatMoney(sale.total)}</div>
+          <script>window.print(); window.close();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
@@ -39,14 +90,23 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
               {formatSaleDate(sale.createdAt)} - {sale.customerName}
             </p>
           </div>
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-bold leading-none text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            onClick={onClose}
-            aria-label="Cerrar detalle de venta"
-          >
-            x
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-md bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"
+              onClick={printSale}
+            >
+              Imprimir
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-bold leading-none text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              onClick={onClose}
+              aria-label="Cerrar detalle de venta"
+            >
+              x
+            </button>
+          </div>
         </div>
 
         <div className="overflow-auto p-5">
@@ -73,7 +133,7 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Producto</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">Cantidad</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">Precio cobrado</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">Precio unitario</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">Subtotal</th>
                 </tr>
               </thead>

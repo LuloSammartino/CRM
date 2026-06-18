@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, type Product, type Provider } from "../lib/api";
-import { buildRubroOptions } from "../lib/rubros";
+import { ADD_RUBRO_VALUE, buildRubroOptions, normalizeRubro } from "../lib/rubros";
 import {
   pricePairs,
   productToForm,
@@ -21,9 +21,11 @@ type EditProductDialogProps = {
 
 export default function EditProductDialog({ product, rubros, proveedores, onClose, onSaved }: EditProductDialogProps) {
   const [form, setForm] = useState<ProductEditorForm>(() => productToForm(product));
+  const [newRubro, setNewRubro] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const rubroOptions = buildRubroOptions(rubros, form.rubro);
+  const isNewRubro = form.rubro === ADD_RUBRO_VALUE;
 
   const saveProduct = async () => {
     const nombre = String(form.nombre ?? "").trim();
@@ -42,7 +44,7 @@ export default function EditProductDialog({ product, rubros, proveedores, onClos
         precio1: String(form.precio1 ?? "0"),
         precio2: form.precio2 === "" ? null : form.precio2,
         precio3: form.precio3 === "" ? null : form.precio3,
-        rubro: form.rubro ? String(form.rubro) : null,
+        rubro: normalizeRubro(isNewRubro ? newRubro : form.rubro),
         proveedorId: form.proveedorId === "" ? null : form.proveedorId ?? null
       });
 
@@ -97,13 +99,22 @@ export default function EditProductDialog({ product, rubros, proveedores, onClos
               onChange={(e) => setForm((current) => ({ ...current, rubro: e.target.value }))}
               className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             >
-              <option value="">Sin rubro</option>
               {rubroOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
               ))}
+              <option value={ADD_RUBRO_VALUE}>Agregar rubro</option>
             </select>
+            {isNewRubro ? (
+              <input
+                value={newRubro}
+                onChange={(e) => setNewRubro(e.target.value.toLocaleUpperCase("es"))}
+                className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                placeholder="Nuevo rubro"
+                autoFocus
+              />
+            ) : null}
           </label>
 
           <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-950/30">

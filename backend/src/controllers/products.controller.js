@@ -2,24 +2,23 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
 
+const DEFAULT_RUBRO = "RUBRO UNICO";
+
 function parseProductId(value) {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function normalizeRubro(value) {
+  return String(value ?? "").trim().toLocaleUpperCase("es") || DEFAULT_RUBRO;
 }
 
 function cleanProduct(product) {
   return {
     ...product,
     nombre: product.nombre?.trim(),
-    rubro: product.rubro?.trim() ?? null
+    rubro: normalizeRubro(product.rubro)
   };
-}
-
-function rubroDisplayScore(value) {
-  const lower = value.toLocaleLowerCase("es");
-  const upper = value.toLocaleUpperCase("es");
-  const isAllUpper = lower !== upper && value === upper;
-  return isAllUpper ? 1 : 0;
 }
 
 const productListSelect = {
@@ -59,6 +58,7 @@ export async function listProducts(req, res, next) {
     const orderBy = priceOrderBy[ordenPrecio] ?? { nombre: "asc" };
     const pagination = parsePagination(req.query);
     const where = {
+      isActive: true,
       ...(nombre
         ? {
             nombre: {
@@ -115,6 +115,7 @@ export async function listProductRubros(_req, res, next) {
     const rows = await prisma.producto.findMany({
       select: { rubro: true },
       where: {
+        isActive: true,
         rubro: {
           not: null
         }
@@ -122,16 +123,10 @@ export async function listProductRubros(_req, res, next) {
       orderBy: { rubro: "asc" }
     });
 
-    const rubroByKey = new Map();
+    const rubroByKey = new Map([[DEFAULT_RUBRO, DEFAULT_RUBRO]]);
     rows.forEach((row) => {
-      const rubro = row.rubro?.trim();
-      if (!rubro) return;
-
-      const key = rubro.toLocaleLowerCase("es");
-      const current = rubroByKey.get(key);
-      if (!current || rubroDisplayScore(rubro) < rubroDisplayScore(current)) {
-        rubroByKey.set(key, rubro);
-      }
+      const rubro = normalizeRubro(row.rubro);
+      rubroByKey.set(rubro, rubro);
     });
 
     const rubros = [...rubroByKey.values()].sort((a, b) => a.localeCompare(b, "es"));
@@ -147,6 +142,7 @@ export async function listProductProveedores(_req, res, next) {
       distinct: ["proveedorId"],
       select: { proveedorId: true },
       where: {
+        isActive: true,
         proveedorId: {
           not: null
         }
@@ -172,8 +168,8 @@ export async function getProductById(req, res, next) {
       return res.status(400).json({ error: "ValidationError", message: "id de producto invalido" });
     }
 
-    const product = await prisma.producto.findUnique({
-      where: { id }
+    const product = await prisma.producto.findFirst({
+      where: { id, isActive: true }
     });
 
     if (!product) {
@@ -218,7 +214,7 @@ export async function createProduct(req, res, next) {
     const product = await prisma.producto.create({
       data: {
         nombre: input.nombre,
-        rubro: input.rubro ?? null,
+        rubro: normalizeRubro(input.rubro),
         costo: input.costo ?? null,
         precio1: input.precio1,
         precio2: input.precio2 ?? null,
@@ -228,7 +224,7 @@ export async function createProduct(req, res, next) {
       }
     });
 
-    res.status(201).json(product);
+    res.status(201).json(cleanProduct(product));
   } catch (err) {
     if (err?.name === "ZodError") {
       return res.status(400).json({ error: "ValidationError", details: err.errors });
@@ -252,7 +248,7 @@ export async function updateProduct(req, res, next) {
       where: { id },
       data: {
         ...(input.nombre !== undefined ? { nombre: input.nombre } : {}),
-        ...(input.rubro !== undefined ? { rubro: input.rubro } : {}),
+        ...(input.rubro !== undefined ? { rubro: normalizeRubro(input.rubro) } : {}),
         ...(input.costo !== undefined ? { costo: input.costo } : {}),
         ...(input.precio1 !== undefined ? { precio1: input.precio1 } : {}),
         ...(input.precio2 !== undefined ? { precio2: input.precio2 } : {}),
@@ -262,7 +258,7 @@ export async function updateProduct(req, res, next) {
       }
     });
 
-    res.json(product);
+    res.json(cleanProduct(product));
   } catch (err) {
     if (err?.name === "ZodError") {
       return res.status(400).json({ error: "ValidationError", details: err.errors });
@@ -283,8 +279,8 @@ export async function bulkUpdateProducts(req, res, next) {
     const factor = 1 + input.percentage / 100;
     const where =
       input.mode === "rubro"
-        ? Prisma.sql`LOWER(TRIM(rubro)) = LOWER(${input.rubro.trim()})`
-        : Prisma.sql`proveedor_id = ${input.proveedorId}`;
+        ? Prisma.sql`LOWER(TRIM(rubro)) = LOWER(${input.rubro.trim()}) AND is_active = TRUE`
+        : Prisma.sql`proveedor_id = ${input.proveedorId} AND is_active = TRUE`;
 
     const updated = await prisma.$executeRaw`
       UPDATE producto
@@ -313,9 +309,7 @@ export async function deleteProduct(req, res, next) {
       return res.status(400).json({ error: "ValidationError", message: "id de producto invalido" });
     }
 
-    await prisma.producto.delete({
-      where: { id }
-    });
+    await prisma.producto.update({ where: { id }, data: { isActive: false } });
 
     res.status(204).send();
   } catch (err) {

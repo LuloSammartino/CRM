@@ -36,7 +36,7 @@ export async function listCustomers(req, res, next) {
     const phone = typeof req.query.phone === "string" ? req.query.phone.trim() : "";
     const iva = typeof req.query.iva === "string" ? req.query.iva.trim() : "";
     const pagination = parsePagination(req.query);
-    const andFilters = [];
+    const andFilters = [{ isActive: true }];
 
     if (query) {
       andFilters.push({ nombre: { contains: query, mode: "insensitive" } });
@@ -50,7 +50,7 @@ export async function listCustomers(req, res, next) {
       andFilters.push({ iva: { contains: iva, mode: "insensitive" } });
     }
 
-    const where = andFilters.length ? { AND: andFilters } : {};
+    const where = { AND: andFilters };
 
     if (pagination) {
       const [customers, total] = await Promise.all([
@@ -131,7 +131,7 @@ export async function listCustomersWithDebt(_req, res, next) {
         ) AS saldo
       FROM movimientos_ctacte m
       INNER JOIN clientes c ON c.id = m.cliente_id
-      WHERE m.venta_id IS NOT NULL
+      WHERE m.venta_id IS NOT NULL AND c.is_active = TRUE
       GROUP BY c.id, c.nombre, c.telefono, c.cuit, m.venta_id
       HAVING COALESCE(
         SUM(
@@ -201,11 +201,18 @@ export async function createCustomerPayment(req, res, next) {
       return res.status(400).json({ error: "ValidationError", message: "El pago no puede superar la deuda." });
     }
 
-    const [movement] = await prisma.$queryRaw`
-      INSERT INTO movimientos_ctacte (cliente_id, venta_id, tipo, monto, detalle, fecha)
-      VALUES (${id}, ${input.ventaId ?? null}, 'PAGO', ${input.monto}, ${input.detalle}, CURRENT_TIMESTAMP)
-      RETURNING id, cliente_id, venta_id, tipo, monto, detalle, fecha
-    `;
+    const movement = await prisma.$transaction(async (tx) => {
+      const [movement] = await tx.$queryRaw`
+        INSERT INTO movimientos_ctacte (cliente_id, venta_id, tipo, monto, detalle, fecha)
+        VALUES (${id}, ${input.ventaId ?? null}, 'PAGO', ${input.monto}, ${input.detalle}, CURRENT_TIMESTAMP)
+        RETURNING id, cliente_id, venta_id, tipo, monto, detalle, fecha
+      `;
+      await tx.$executeRaw`
+        INSERT INTO movimientos_caja (concepto, monto, tipo, fecha)
+        VALUES (${input.detalle}, ${input.monto}, 'entrada', CURRENT_DATE)
+      `;
+      return movement;
+    });
 
     res.status(201).json({
       ok: true,
@@ -352,7 +359,7 @@ export async function deleteCustomer(req, res, next) {
       return res.status(400).json({ error: "ValidationError", message: "id de cliente invalido" });
     }
 
-    await prisma.cliente.delete({ where: { id } });
+    await prisma.cliente.update({ where: { id }, data: { isActive: false } });
     res.status(204).send();
   } catch (err) {
     if (err?.code === "P2025") {
