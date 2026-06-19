@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AddCashMovementButton from "../components/AddCashMovementButton";
+import AddSaleButton from "../components/AddSaleButton";
 import DataTable, { type Column } from "../components/DataTable";
 import PageHeader from "../components/PageHeader";
 import { api, type CashMovement, type SaleRow } from "../lib/api";
@@ -33,12 +34,6 @@ function fmtMoney(value: number) {
 
 function saleConcept(sale: SaleRow) {
   return sale.customerName ? `Venta - ${sale.customerName}` : "Venta";
-}
-
-function balanceCardClass(balance: number, salesTotal: number) {
-  if (balance < 0) return "border-red-200 bg-red-100 text-red-950 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-100";
-  if (salesTotal > 0 && balance < salesTotal * 0.25) return "border-amber-200 bg-amber-100 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100";
-  return "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100";
 }
 
 export default function CashMovementsPage() {
@@ -106,10 +101,10 @@ export default function CashMovementsPage() {
   const totalIncome = rows.filter((row) => row.tipo !== "gasto").reduce((sum, row) => sum + row.monto, 0);
   const totalExpenses = rows.filter((row) => row.tipo === "gasto").reduce((sum, row) => sum + row.monto, 0);
   const balance = totalIncome - totalExpenses;
+  const dateLabel = date === todayISODateLocal() ? "Hoy" : fmtDate(date);
 
   const columns: Column<CashRow>[] = useMemo(
     () => [
-      { key: "fecha", header: "Fecha", className: "whitespace-nowrap", render: (row) => fmtDate(row.fecha) },
       { key: "concepto", header: "Concepto", render: (row) => <span className="font-medium">{row.concepto}</span> },
       { key: "tipo", header: "Tipo", className: "whitespace-nowrap", render: (row) => row.tipo === "venta" ? "Venta" : row.tipo === "deuda" ? "Deuda" : "Gasto" },
       {
@@ -129,7 +124,7 @@ export default function CashMovementsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader title={`Caja diaria - ${fmtDate(date)}`} tone="sky" />
+        <PageHeader title={`Caja diaria - ${dateLabel}`} tone="sky" />
         <div className="flex flex-wrap gap-2">
           <label className="text-sm">
             <span className="sr-only">Fecha de caja</span>
@@ -140,23 +135,33 @@ export default function CashMovementsPage() {
               className="h-[38px] rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             />
           </label>
+          <AddSaleButton onCreated={load} />
           <AddCashMovementButton />
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(260px,1.25fr)_minmax(220px,1fr)]">
-        <div className={`rounded-2xl border p-6 shadow-sm ${balanceCardClass(balance, totalIncome)}`}>
-          <div className="text-sm font-semibold">Balance total</div>
-          <div className="mt-8 text-4xl font-bold tabular-nums">{fmtMoney(balance)}</div>
-        </div>
-        <div className="grid gap-3">
-          <div className="rounded-2xl border border-red-200 bg-red-100 p-4 text-red-950 shadow-sm dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-100">
-            <div className="text-sm font-semibold">Gasto</div>
-            <div className="mt-3 text-2xl font-bold tabular-nums">{fmtMoney(totalExpenses)}</div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <div>
+          <div className="mb-1 px-1 text-sm font-semibold text-slate-900 dark:text-slate-100">Ventas</div>
+          <div className="rounded-xl border-2 border-emerald-400 bg-white px-4 py-3 text-2xl font-bold tabular-nums text-emerald-600 shadow-sm dark:border-emerald-500/70 dark:bg-slate-900 dark:text-emerald-300">
+            {fmtMoney(totalIncome)}
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-100 p-4 text-emerald-950 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-100">
-            <div className="text-sm font-semibold">Ingresos</div>
-            <div className="mt-3 text-2xl font-bold tabular-nums">{fmtMoney(totalIncome)}</div>
+        </div>
+        <div>
+          <div className="mb-1 px-1 text-sm font-semibold text-slate-900 dark:text-slate-100">Gastos</div>
+          <div className="rounded-xl border-2 border-red-400 bg-white px-4 py-3 text-2xl font-bold tabular-nums text-red-500 shadow-sm dark:border-red-500/70 dark:bg-slate-900 dark:text-red-300">
+            {fmtMoney(totalExpenses)}
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 px-1 text-sm font-semibold text-slate-900 dark:text-slate-100">Balance total</div>
+          <div className={[
+            "rounded-xl border-2 px-4 py-3 text-2xl font-bold tabular-nums shadow-sm",
+            balance < 0
+              ? "border-red-950 bg-red-100 text-red-700 dark:border-red-200 dark:bg-red-950/50 dark:text-red-200"
+              : "border-slate-950 bg-emerald-200 text-emerald-700 dark:border-slate-100 dark:bg-emerald-950/60 dark:text-emerald-200"
+          ].join(" ")}>
+            {fmtMoney(balance)}
           </div>
         </div>
       </div>

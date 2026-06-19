@@ -16,9 +16,13 @@ export default function SettingsPage({ onLogout }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  function logout() {
-    clearAuthToken();
-    onLogout();
+  async function logout() {
+    try {
+      await api.logout();
+    } finally {
+      clearAuthToken();
+      onLogout();
+    }
   }
 
   async function submit(event: FormEvent) {

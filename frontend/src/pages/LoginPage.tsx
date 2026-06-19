@@ -15,7 +15,14 @@ export default function LoginPage({ onLogin }: Props) {
 
   useEffect(() => {
     function focusPassword(event: KeyboardEvent) {
-      if (document.activeElement === passwordInputRef.current || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (
+        document.activeElement === passwordInputRef.current ||
+        document.activeElement !== document.body ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey
+      ) return;
+
       passwordInputRef.current?.focus();
       if (event.key.length === 1) {
         event.preventDefault();
@@ -35,8 +42,8 @@ export default function LoginPage({ onLogin }: Props) {
     setError(null);
 
     try {
-      const result = await api.login(password);
-      setAuthToken(result.token);
+      await api.login(password);
+      setAuthToken();
       onLogin();
     } catch {
       setError("Contrasena incorrecta.");

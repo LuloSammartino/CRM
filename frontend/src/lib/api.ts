@@ -8,7 +8,6 @@ import type {
   Customer,
   CustomerFilters,
   CustomerMovement,
-  DashboardMetrics,
   PaginatedResult,
   PaginationParams,
   Product,
@@ -29,7 +28,6 @@ export type {
   Customer,
   CustomerFilters,
   CustomerMovement,
-  DashboardMetrics,
   PaginatedResult,
   PaginationParams,
   Product,
@@ -43,37 +41,60 @@ export type {
 } from "./apiTypes";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:4000";
-const AUTH_TOKEN_KEY = "crm_auth_token";
+const AUTH_SESSION_KEY = "crm_auth_session";
+const GENERIC_ERROR_MESSAGE = "Ocurrio un problema, intentalo nuevamente.";
+export const AUTH_LOGOUT_EVENT = "crm:auth-logout";
 
 export function getAuthToken() {
-  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+  return window.sessionStorage.getItem(AUTH_SESSION_KEY);
 }
 
-export function setAuthToken(token: string) {
-  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+export function setAuthToken() {
+  window.sessionStorage.setItem(AUTH_SESSION_KEY, "1");
 }
 
 export function clearAuthToken() {
-  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+}
+
+function notifyAuthLogout() {
+  window.dispatchEvent(new CustomEvent(AUTH_LOGOUT_EVENT));
+}
+
+function responseMessage(text: string) {
+  try {
+    return JSON.parse(text)?.message ?? GENERIC_ERROR_MESSAGE;
+  } catch {
+    return GENERIC_ERROR_MESSAGE;
+  }
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getAuthToken();
-  const res = await fetch(`${API_BASE}${path}`, {
-    cache: "no-store",
-    headers: {
-      "Cache-Control": "no-cache",
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options?.headers ?? {})
-    },
-    ...options
-  });
+  let res: Response;
+
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      cache: "no-store",
+      credentials: "include",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
+        ...(options?.headers ?? {})
+      },
+      ...options
+    });
+  } catch {
+    throw new Error(GENERIC_ERROR_MESSAGE);
+  }
 
   if (!res.ok) {
-    if (res.status === 401) clearAuthToken();
+    if (res.status === 401) {
+      clearAuthToken();
+      notifyAuthLogout();
+    }
     const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+    const message = text ? responseMessage(text) : GENERIC_ERROR_MESSAGE;
+    throw new Error(res.status >= 500 ? GENERIC_ERROR_MESSAGE : message);
   }
 
   if (res.status === 204) return undefined as T;
@@ -82,16 +103,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   login: (password: string) =>
-    request<{ token: string; user: { id: string; username: string } }>("/api/auth/login", {
+    request<{ user: { id: string; username: string } }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ password })
     }),
+  me: () => request<{ user: { id: string; username: string } }>("/api/auth/me"),
+  logout: () => request<void>("/api/auth/logout", { method: "POST" }),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     request<{ ok: true }>("/api/auth/change-password", {
       method: "POST",
       body: JSON.stringify(data)
     }),
-  dashboard: () => request<DashboardMetrics>("/api/dashboard"),
   listCashMovementsPage: (params?: PaginationParams & { date?: string }) => {
     const query = new URLSearchParams();
     if (params?.date?.trim()) query.set("date", params.date.trim());

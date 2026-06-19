@@ -176,6 +176,11 @@ export async function createCustomerPayment(req, res, next) {
     }
 
     const input = customerPaymentSchema.parse(req.body);
+    const customer = await prisma.cliente.findFirst({ where: { id, isActive: true }, select: { id: true } });
+    if (!customer) {
+      return res.status(404).json({ error: "NotFound", message: "Cliente no encontrado" });
+    }
+
     const currentDebt = input.ventaId
       ? await prisma.$queryRaw`
           SELECT COALESCE(

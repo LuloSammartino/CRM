@@ -5,19 +5,34 @@ import dotenv from "dotenv";
 
 import customersRouter from "./src/routes/customers.routes.js";
 import productsRouter from "./src/routes/products.routes.js";
-import dashboardRouter from "./src/routes/dashboard.routes.js";
 import salesRouter from "./src/routes/sales.routes.js";
 import providersRouter from "./src/routes/providers.routes.js";
 import cashMovementsRouter from "./src/routes/cash-movements.routes.js";
-import { changePassword, login, requireAuth } from "./src/auth.js";
+import { changePassword, login, logout, me, requireAuth } from "./src/auth.js";
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET must be set");
+}
+
 const app = express();
+const clientOrigins = new Set(
+  String(process.env.CLIENT_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
 
 // Middlewares base
 app.set("etag", false);
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin || clientOrigins.has(origin)) return callback(null, true);
+    callback(new Error("Origin not allowed by CORS"));
+  }
+}));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use("/api", (_req, res, next) => {
@@ -31,8 +46,9 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 // API routes
 app.post("/api/auth/login", login);
 app.use("/api", requireAuth);
+app.get("/api/auth/me", me);
+app.post("/api/auth/logout", logout);
 app.post("/api/auth/change-password", changePassword);
-app.use("/api/dashboard", dashboardRouter);
 app.use("/api/customers", customersRouter);
 app.use("/api/clients", customersRouter);
 app.use("/api/clientes", customersRouter);

@@ -17,10 +17,6 @@ function formatSaleDate(iso: string) {
   }
 }
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
-}
-
 export default function SaleDetailDialog({ sale, onClose }: Props) {
   function printSale() {
     const printWindow = window.open("", "_blank", "width=800,height=600");
@@ -42,31 +38,65 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
           </style>
         </head>
         <body>
-          <h1>Detalle de venta</h1>
-          <p><strong>Fecha:</strong> ${escapeHtml(formatSaleDate(sale.createdAt))}</p>
-          <p><strong>Cliente:</strong> ${escapeHtml(sale.customerName)}</p>
-          <p><strong>Pago:</strong> ${escapeHtml(sale.metodoPago || "Sin especificar")}</p>
-          <table>
-            <thead>
-              <tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Precio cobrado</th><th class="num">Subtotal</th></tr>
-            </thead>
-            <tbody>
-              ${sale.lines.map((line) => `
-                <tr>
-                  <td>${escapeHtml(line.productName)}</td>
-                  <td class="num">${line.qty}</td>
-                  <td class="num">${formatMoney(line.unitPrice)}</td>
-                  <td class="num">${formatMoney(line.lineTotal)}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-          <div class="total">Total: ${formatMoney(sale.total)}</div>
-          <script>window.print(); window.close();</script>
         </body>
       </html>
     `);
     printWindow.document.close();
+
+    const doc = printWindow.document;
+    const addText = (parent: HTMLElement, text: string, tagName = "span") => {
+      const element = doc.createElement(tagName);
+      element.textContent = text;
+      parent.appendChild(element);
+      return element;
+    };
+    const addInfo = (label: string, value: string) => {
+      const p = doc.createElement("p");
+      addText(p, `${label}: `, "strong");
+      addText(p, value);
+      doc.body.appendChild(p);
+    };
+
+    addText(doc.body, "Detalle de venta", "h1");
+    addInfo("Fecha", formatSaleDate(sale.createdAt));
+    addInfo("Cliente", sale.customerName);
+    addInfo("Pago", sale.metodoPago || "Sin especificar");
+
+    const table = doc.createElement("table");
+    const thead = doc.createElement("thead");
+    const headerRow = doc.createElement("tr");
+    ["Producto", "Cantidad", "Precio unitario", "Subtotal"].forEach((header, index) => {
+      const th = doc.createElement("th");
+      th.textContent = header;
+      if (index > 0) th.className = "num";
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = doc.createElement("tbody");
+    sale.lines.forEach((line) => {
+      const row = doc.createElement("tr");
+      [line.productName, String(line.qty), formatMoney(line.unitPrice), formatMoney(line.lineTotal)].forEach((value, index) => {
+        const td = doc.createElement("td");
+        td.textContent = value;
+        if (index > 0) td.className = "num";
+        row.appendChild(td);
+      });
+      tbody.appendChild(row);
+    });
+    table.appendChild(tbody);
+    doc.body.appendChild(table);
+
+    const total = doc.createElement("div");
+    total.className = "total";
+    total.textContent = `Total: ${formatMoney(sale.total)}`;
+    doc.body.appendChild(total);
+
+    printWindow.setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 0);
   }
 
   return (

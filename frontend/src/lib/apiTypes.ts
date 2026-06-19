@@ -1,11 +1,3 @@
-export type DashboardMetrics = {
-  totalCustomers: number;
-  totalProducts: number;
-  lowStockProducts: number;
-  todaySalesCount: number;
-  todaySalesTotal: number;
-};
-
 export type Customer = {
   id: string;
   name: string;
