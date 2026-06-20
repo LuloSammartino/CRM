@@ -83,12 +83,15 @@ function parseCookies(header) {
 }
 
 function authCookie(token) {
+  const sameSite = process.env.NODE_ENV === "production" ? "None" : "Lax";
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${TOKEN_TTL_SECONDS}${secure}`;
+  return `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=${TOKEN_TTL_SECONDS}${secure}`;
 }
 
 function clearAuthCookie() {
-  return `${AUTH_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+  const sameSite = process.env.NODE_ENV === "production" ? "None" : "Lax";
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${AUTH_COOKIE_NAME}=; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=0${secure}`;
 }
 
 export function signToken(user) {
