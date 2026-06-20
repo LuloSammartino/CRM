@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
-import { AUTH_LOGOUT_EVENT, api, clearAuthToken, getAuthToken, setAuthToken } from "../lib/api";
+import { AUTH_LOGOUT_EVENT, api, clearAuthToken, getAuthToken } from "../lib/api";
 
 const DashboardPage = lazy(() => import("../pages/DashboardPage"));
 const CustomersPage = lazy(() => import("../pages/CustomersPage"));
@@ -22,7 +22,6 @@ export default function App() {
     api
       .me()
       .then(() => {
-        setAuthToken();
         setAuthStatus("authenticated");
       })
       .catch(() => {

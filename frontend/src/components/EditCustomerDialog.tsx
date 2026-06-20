@@ -65,9 +65,11 @@ export default function EditCustomerDialog({ customer, onClose, onSaved }: EditC
         <form onSubmit={saveCustomer} className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
           
 
-          {customerFields.map(({ key, label, required, type, maxLength }) => (
+          {customerFields.map(({ key, label, required, type, maxLength, help }) => (
             <label key={key} className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{label}</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                {label}{help ? <span className="ml-1 text-[10px] font-normal text-slate-400">({help})</span> : null}
+              </span>
               {key === "iva" ? (
                 <select
                   value={form.iva ?? ""}

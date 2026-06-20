@@ -158,8 +158,9 @@ export async function login(req, res, next) {
       `;
     }
 
-    res.setHeader("Set-Cookie", authCookie(signToken(user)));
-    res.json({ user: { id: String(user.id), username: user.username } });
+    const token = signToken(user);
+    res.setHeader("Set-Cookie", authCookie(token));
+    res.json({ token, user: { id: String(user.id), username: user.username } });
   } catch (err) {
     next(err);
   }

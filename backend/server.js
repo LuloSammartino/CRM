@@ -17,10 +17,11 @@ if (!process.env.JWT_SECRET) {
 }
 
 const app = express();
+const normalizeOrigin = (origin) => origin.trim().replace(/\/$/, "");
 const clientOrigins = new Set(
-  String(process.env.CLIENT_ORIGINS ?? "")
+  String(process.env.CLIENT_ORIGINS ?? process.env.CLIENT_ORIGIN ?? "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean)
 );
 
@@ -29,8 +30,8 @@ app.set("etag", false);
 app.use(cors({
   credentials: true,
   origin(origin, callback) {
-    if (!origin || clientOrigins.has(origin)) return callback(null, true);
-    callback(new Error("Origin not allowed by CORS"));
+    if (!origin || clientOrigins.has(normalizeOrigin(origin))) return callback(null, true);
+    callback(null, false);
   }
 }));
 app.use(express.json({ limit: "1mb" }));

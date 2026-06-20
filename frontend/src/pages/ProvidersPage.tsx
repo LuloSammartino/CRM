@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader";
 import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
 import { api, type Provider } from "../lib/api";
+import { formatCuit } from "../lib/cuit";
 
 const PAGE_SIZE = 100;
 
@@ -129,7 +130,7 @@ export default function ProvidersPage() {
         className: "w-[10%] px-3",
         render: (provider) => (
           <span className="block truncate font-bold" title={provider.cuit ?? ""}>
-            {provider.cuit ?? "-"}
+            {formatCuit(provider.cuit)}
           </span>
         )
       },

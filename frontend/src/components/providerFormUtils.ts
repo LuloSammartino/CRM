@@ -17,6 +17,7 @@ export type ProviderField = {
   required?: boolean;
   type?: string;
   maxLength?: number;
+  help?: string;
 };
 
 export const providerFields: ProviderField[] = [
@@ -24,7 +25,7 @@ export const providerFields: ProviderField[] = [
   { key: "direccion", label: "Direccion", maxLength: 150 },
   { key: "telefono", label: "Telefono", maxLength: 30 },
   { key: "email", label: "Email", type: "email", maxLength: 50 },
-  { key: "cuit", label: "CUIT", maxLength: 11 },
+  { key: "cuit", label: "CUIT", maxLength: 11, help: "sin guiones" },
   { key: "aclaracion", label: "Aclaracion", maxLength: 50 }
 ] as const;
 

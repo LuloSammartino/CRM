@@ -42,8 +42,8 @@ export default function LoginPage({ onLogin }: Props) {
     setError(null);
 
     try {
-      await api.login(password);
-      setAuthToken();
+      const session = await api.login(password);
+      setAuthToken(session.token);
       onLogin();
     } catch {
       setError("Contrasena incorrecta.");

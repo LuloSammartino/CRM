@@ -9,6 +9,7 @@ import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
 import { ivaOptions } from "../components/customerFormUtils";
 import { api, type CurrentAccountDebtor, type Customer } from "../lib/api";
+import { formatCuit } from "../lib/cuit";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 const PAGE_SIZE = 100;
@@ -166,7 +167,7 @@ export default function CustomersPage() {
         className: "w-[12%] px-3",
         render: (c) => (
           <span className="block truncate font-bold" title={c.cuit ?? ""}>
-            {c.cuit ?? "-"}
+            {formatCuit(c.cuit)}
           </span>
         )
       },{

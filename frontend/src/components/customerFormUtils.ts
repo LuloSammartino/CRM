@@ -21,6 +21,7 @@ export type CustomerField = {
   required?: boolean;
   type?: string;
   maxLength?: number;
+  help?: string;
 };
 
 export const customerFields: CustomerField[] = [
@@ -30,7 +31,7 @@ export const customerFields: CustomerField[] = [
   { key: "direccion", label: "Direccion" },
   { key: "direccion1", label: "Direccion 1" },
   { key: "direccion2", label: "Direccion 2" },
-  { key: "cuit", label: "CUIT", maxLength: 11 },
+  { key: "cuit", label: "CUIT", maxLength: 11, help: "sin guiones" },
   { key: "iva", label: "IVA" },
   { key: "tipo", label: "Tipo" },
   { key: "razonSocial", label: "Razon social" }

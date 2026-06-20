@@ -49,8 +49,8 @@ export function getAuthToken() {
   return window.sessionStorage.getItem(AUTH_SESSION_KEY);
 }
 
-export function setAuthToken() {
-  window.sessionStorage.setItem(AUTH_SESSION_KEY, "1");
+export function setAuthToken(token: string) {
+  window.sessionStorage.setItem(AUTH_SESSION_KEY, token);
 }
 
 export function clearAuthToken() {
@@ -71,6 +71,7 @@ function responseMessage(text: string) {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   let res: Response;
+  const token = getAuthToken();
 
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -79,6 +80,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       headers: {
         "Cache-Control": "no-cache",
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options?.headers ?? {})
       },
       ...options
@@ -103,7 +105,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   login: (password: string) =>
-    request<{ user: { id: string; username: string } }>("/api/auth/login", {
+    request<{ token: string; user: { id: string; username: string } }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ password })
     }),

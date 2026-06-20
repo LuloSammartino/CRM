@@ -64,9 +64,11 @@ export default function EditProviderDialog({ provider, onClose, onSaved }: EditP
 
         <form onSubmit={saveProvider} className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
          
-          {providerFields.map(({ key, label, required, type, maxLength }) => (
+          {providerFields.map(({ key, label, required, type, maxLength, help }) => (
             <label key={key} className="grid gap-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{label}</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                {label}{help ? <span className="ml-1 text-[10px] font-normal text-slate-400">({help})</span> : null}
+              </span>
               <input
                 value={form[key] ?? ""}
                 onChange={(e) => setForm((current) => ({ ...current, [key]: e.target.value }))}
