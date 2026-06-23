@@ -115,6 +115,7 @@ export type PaginatedResult<T> = {
 export type CustomerFilters = {
   q?: string;
   phone?: string;
+  cuit?: string;
   iva?: string;
 };
 

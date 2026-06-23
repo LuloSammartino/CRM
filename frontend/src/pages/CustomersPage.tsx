@@ -18,9 +18,11 @@ export default function CustomersPage() {
   const [rows, setRows] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [phoneSearch, setPhoneSearch] = useState("");
+  const [cuitSearch, setCuitSearch] = useState("");
   const [ivaFilter, setIvaFilter] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [debouncedPhoneSearch, setDebouncedPhoneSearch] = useState("");
+  const [debouncedCuitSearch, setDebouncedCuitSearch] = useState("");
   const [debouncedIvaFilter, setDebouncedIvaFilter] = useState("");
   const [page, setPage] = useState(0);
   const [totalRows, setTotalRows] = useState(0);
@@ -38,13 +40,14 @@ export default function CustomersPage() {
     (
       query = debouncedSearch,
       phone = debouncedPhoneSearch,
+      cuit = debouncedCuitSearch,
       iva = debouncedIvaFilter,
       pageIndex = page
     ) => {
       setLoading(true);
       setError(null);
       api
-        .listCustomersPage({ q: query, phone, iva, limit: PAGE_SIZE, offset: pageIndex * PAGE_SIZE })
+        .listCustomersPage({ q: query, phone, cuit, iva, limit: PAGE_SIZE, offset: pageIndex * PAGE_SIZE })
         .then((result) => {
           setRows(result.rows);
           setTotalRows(result.total);
@@ -52,7 +55,7 @@ export default function CustomersPage() {
         .catch((e) => setError(String((e as Error)?.message ?? e)))
         .finally(() => setLoading(false));
     },
-    [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, page]
+    [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, page]
   );
 
   const refreshCurrentAccountDebtors = useCallback(() => {
@@ -67,28 +70,29 @@ export default function CustomersPage() {
       setPage(0);
       setDebouncedSearch(search.trim());
       setDebouncedPhoneSearch(phoneSearch.trim());
+      setDebouncedCuitSearch(cuitSearch.trim());
       setDebouncedIvaFilter(ivaFilter.trim());
     }, 300);
 
     return () => window.clearTimeout(timeoutId);
-  }, [ivaFilter, phoneSearch, search]);
+  }, [cuitSearch, ivaFilter, phoneSearch, search]);
 
   useEffect(() => {
-    load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
-  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
+    load(debouncedSearch, debouncedPhoneSearch, debouncedCuitSearch, debouncedIvaFilter, page);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
 
   useEffect(() => {
     const onSale = () => {
-      load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
+      load(debouncedSearch, debouncedPhoneSearch, debouncedCuitSearch, debouncedIvaFilter, page);
       refreshCurrentAccountDebtors();
     };
     window.addEventListener(CRM_SALE_CREATED_EVENT, onSale);
     return () => window.removeEventListener(CRM_SALE_CREATED_EVENT, onSale);
-  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page, refreshCurrentAccountDebtors]);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page, refreshCurrentAccountDebtors]);
 
   const refreshCustomers = useCallback(() => {
-    load(debouncedSearch, debouncedPhoneSearch, debouncedIvaFilter, page);
-  }, [debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
+    load(debouncedSearch, debouncedPhoneSearch, debouncedCuitSearch, debouncedIvaFilter, page);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
 
   useEffect(() => {
     refreshCurrentAccountDebtors();
@@ -171,12 +175,12 @@ export default function CustomersPage() {
           </span>
         )
       },{
-        key: "iva",
-        header: "IVA",
+        key: "tipo",
+        header: "Tipo",
         className: "w-[15%] px-3",
         render: (c) => (
-          <span className="block truncate font-bold" title={c.iva ?? ""}>
-            {c.iva ?? "-"}
+          <span className="block truncate font-bold" title={c.tipo ?? ""}>
+            {c.tipo ?? "-"}
           </span>
         )
       },
@@ -215,7 +219,7 @@ export default function CustomersPage() {
     []
   );
 
-  const hasActiveFilters = Boolean(debouncedSearch || debouncedPhoneSearch || debouncedIvaFilter);
+  const hasActiveFilters = Boolean(debouncedSearch || debouncedPhoneSearch || debouncedCuitSearch || debouncedIvaFilter);
   const resultLabel = loading
     ? "Cargando clientes..."
     : `${totalRows} cliente${totalRows === 1 ? "" : "s"}${hasActiveFilters ? " encontrados" : ""}`;
@@ -242,7 +246,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_minmax(180px,240px)_auto]">
+      <div className="grid gap-3 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_minmax(160px,1fr)_minmax(180px,240px)_auto]">
         <label className="text-sm">
           <span className="font-medium text-slate-700 dark:text-slate-300">Buscar cliente</span>
           <input
@@ -261,6 +265,17 @@ export default function CustomersPage() {
             value={phoneSearch}
             onChange={(e) => setPhoneSearch(e.target.value)}
             placeholder="Numero de telefono..."
+            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/50"
+          />
+        </label>
+
+        <label className="text-sm">
+          <span className="font-medium text-slate-700 dark:text-slate-300">Buscar CUIT</span>
+          <input
+            type="search"
+            value={cuitSearch}
+            onChange={(e) => setCuitSearch(e.target.value)}
+            placeholder="CUIT del cliente..."
             className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/50"
           />
         </label>
@@ -287,9 +302,10 @@ export default function CustomersPage() {
             onClick={() => {
               setSearch("");
               setPhoneSearch("");
+              setCuitSearch("");
               setIvaFilter("");
             }}
-            disabled={!search.trim() && !phoneSearch.trim() && !ivaFilter.trim()}
+            disabled={!search.trim() && !phoneSearch.trim() && !cuitSearch.trim() && !ivaFilter.trim()}
             className="h-[38px] rounded-md border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-800 shadow-sm hover:bg-sky-50 disabled:opacity-50 dark:border-sky-900/60 dark:bg-slate-950/40 dark:text-sky-200 dark:hover:bg-sky-950/40"
           >
             Limpiar

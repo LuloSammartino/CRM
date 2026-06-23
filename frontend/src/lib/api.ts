@@ -130,6 +130,7 @@ export const api = {
     const params = new URLSearchParams();
     if (filters?.q?.trim()) params.set("q", filters.q.trim());
     if (filters?.phone?.trim()) params.set("phone", filters.phone.trim());
+    if (filters?.cuit?.trim()) params.set("cuit", filters.cuit.trim());
     if (filters?.iva?.trim()) params.set("iva", filters.iva.trim());
     params.set("limit", String(filters?.limit ?? 100));
     params.set("offset", String(filters?.offset ?? 0));

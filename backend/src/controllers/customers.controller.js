@@ -34,6 +34,7 @@ export async function listCustomers(req, res, next) {
   try {
     const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
     const phone = typeof req.query.phone === "string" ? req.query.phone.trim() : "";
+    const cuit = typeof req.query.cuit === "string" ? req.query.cuit.trim() : "";
     const iva = typeof req.query.iva === "string" ? req.query.iva.trim() : "";
     const pagination = parsePagination(req.query);
     const andFilters = [{ isActive: true }];
@@ -44,6 +45,10 @@ export async function listCustomers(req, res, next) {
 
     if (phone) {
       andFilters.push({ telefono: { contains: phone, mode: "insensitive" } });
+    }
+
+    if (cuit) {
+      andFilters.push({ cuit: { contains: cuit, mode: "insensitive" } });
     }
 
     if (iva) {
@@ -269,8 +274,8 @@ export async function listCustomerMovements(req, res, next) {
 
 const customerSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email().optional().or(z.literal("").transform(() => undefined)),
-  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("").transform(() => undefined)).nullable(),
+  phone: z.string().optional().nullable(),
   direccion: z.string().optional().nullable(),
   direccion1: z.string().optional().nullable(),
   direccion2: z.string().optional().nullable(),

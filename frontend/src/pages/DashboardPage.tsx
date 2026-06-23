@@ -7,7 +7,7 @@ import SaleDetailDialog from "../components/SaleDetailDialog";
 import { api, type SaleRow } from "../lib/api";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
-const SALES_PAGE_SIZE = 8;
+const SALES_PAGE_SIZE = 100;
 const DATE_FORMAT = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const MONTH_FORMAT = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" });
 const MONTH_OPTIONS = [
@@ -264,11 +264,14 @@ export default function DashboardPage() {
         key: "lines",
         header: "Productos",
         render: (sale) => (
-          <ul className="max-w-md list-none space-y-0.5 p-0 text-xs">
-            {sale.lines.map((line, index) => (
+          <ul className="h-12 max-w-md list-none space-y-0.5 overflow-hidden p-0 text-xs">
+            {sale.lines.slice(0, 3).map((line, index) => (
               <li key={index} className="text-slate-700 dark:text-slate-300">
                 <span className="font-semibold text-violet-700 dark:text-violet-300">{line.qty}x</span>{" "}
                 {line.productName}
+                {index === 2 && sale.lines.length > 3 ? (
+                  <span className="font-semibold text-slate-500 dark:text-slate-400"> Más...</span>
+                ) : null}
               </li>
             ))}
           </ul>

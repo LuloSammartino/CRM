@@ -1,4 +1,5 @@
 import type { SaleRow } from "../lib/api";
+import ModalPortal from "./ModalPortal";
 
 type Props = {
   sale: SaleRow;
@@ -100,15 +101,16 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
   }
 
   return (
+    <ModalPortal>
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="sale-detail-title"
       onMouseDown={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/25 dark:border-slate-700 dark:bg-slate-900"
+        className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/25 dark:border-slate-700 dark:bg-slate-900"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-700 dark:bg-slate-800/70">
@@ -139,7 +141,7 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
           </div>
         </div>
 
-        <div className="overflow-auto p-5">
+        <div className="min-h-0 flex-1 overflow-auto p-5">
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/60">
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Cliente</div>
@@ -189,5 +191,6 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
