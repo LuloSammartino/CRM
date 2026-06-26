@@ -296,6 +296,125 @@ export async function createSale(req, res, next) {
   }
 }
 
+export async function updateSale(req, res, next) {
+  try {
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "id de venta invalido" });
+    }
+
+    const input = createSaleSchema.parse(req.body);
+    const clienteId = input.clienteId ?? input.customerId ?? null;
+    const fecha = parseDateOnly(input.fecha ?? input.soldAt);
+    const isCuentaCorriente = isCurrentAccountPayment(input.metodoPago);
+
+    if (fecha === null) {
+      return res.status(400).json({ error: "ValidationError", message: "fecha invalida. Usa YYYY-MM-DD." });
+    }
+
+    if (isCuentaCorriente && !clienteId) {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Las ventas en cuenta corriente requieren un cliente."
+      });
+    }
+
+    const items = input.items.map(normalizeSaleItem);
+    if (items.some((item) => item == null)) {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: "Cada item debe tener productoId/productId, cantidad/qty y precioUnitario/unitPrice."
+      });
+    }
+
+    const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const productIds = [...new Set(items.map((item) => item.productoId))];
+
+    const sale = await prisma.$transaction(async (tx) => {
+      const currentSale = await tx.venta.findUnique({ where: { id }, select: { id: true } });
+      if (!currentSale) {
+        const err = new Error("SALE_NOT_FOUND");
+        err.code = "SALE_NOT_FOUND";
+        throw err;
+      }
+
+      if (clienteId) {
+        const cliente = await tx.cliente.findFirst({ where: { id: clienteId, isActive: true }, select: { id: true } });
+        if (!cliente) {
+          const err = new Error("CLIENT_NOT_FOUND");
+          err.code = "CLIENT_NOT_FOUND";
+          throw err;
+        }
+      }
+
+      const products = await tx.producto.findMany({
+        where: { id: { in: productIds }, isActive: true },
+        select: { id: true }
+      });
+      if (products.length !== productIds.length) {
+        const found = new Set(products.map((product) => product.id));
+        const missing = productIds.filter((productId) => !found.has(productId));
+        const err = new Error(`PRODUCT_NOT_FOUND:${missing.join(",")}`);
+        err.code = "PRODUCT_NOT_FOUND";
+        throw err;
+      }
+
+      await tx.ventaDetalle.deleteMany({ where: { ventaId: id } });
+      const sale = await tx.venta.update({
+        where: { id },
+        data: {
+          ...(fecha ? { fecha } : {}),
+          clienteId,
+          montoTotal: total,
+          metodoPago: input.metodoPago,
+          detalles: {
+            create: items.map((item) => ({
+              productoId: item.productoId,
+              cantidad: item.cantidad,
+              precioUnitario: item.precioUnitario,
+              subtotal: item.subtotal
+            }))
+          }
+        },
+        include: saleInclude
+      });
+
+      await tx.$executeRaw`
+        DELETE FROM movimientos_ctacte
+        WHERE venta_id = ${id} AND tipo = 'DEUDA'
+      `;
+
+      if (isCuentaCorriente) {
+        await tx.$executeRaw`
+          INSERT INTO movimientos_ctacte (cliente_id, venta_id, tipo, monto, detalle, fecha)
+          VALUES (${clienteId}, ${sale.id}, 'DEUDA', ${total}, ${input.detalle ?? null}, CURRENT_TIMESTAMP)
+        `;
+      }
+
+      return sale;
+    });
+
+    res.json(cleanSale(sale));
+  } catch (err) {
+    if (err?.name === "ZodError") {
+      return res.status(400).json({ error: "ValidationError", details: err.errors });
+    }
+    if (err?.code === "SALE_NOT_FOUND" || err?.code === "P2025") {
+      return res.status(404).json({ error: "NotFound", message: "Venta no encontrada" });
+    }
+    if (err?.code === "CLIENT_NOT_FOUND") {
+      return res.status(404).json({ error: "NotFound", message: "Cliente no encontrado" });
+    }
+    if (err?.code === "PRODUCT_NOT_FOUND") {
+      return res.status(404).json({ error: "NotFound", message: err.message });
+    }
+    if (err?.code === "P2003") {
+      return res.status(400).json({ error: "ValidationError", message: "Cliente o producto invalido" });
+    }
+    next(err);
+  }
+}
+
 export async function findSalesByProduct(req, res, next) {
   try {
     const productId = parsePositiveInt(req.params.productId ?? req.query.productId ?? req.query.productoId);
@@ -341,7 +460,13 @@ export async function deleteSale(req, res, next) {
       return res.status(400).json({ error: "ValidationError", message: "id de venta invalido" });
     }
 
-    await prisma.venta.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        DELETE FROM movimientos_ctacte
+        WHERE venta_id = ${id}
+      `;
+      await tx.venta.delete({ where: { id } });
+    });
     res.status(204).send();
   } catch (err) {
     if (err?.code === "P2025") {

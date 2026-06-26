@@ -206,6 +206,9 @@ export const api = {
     request<{ updated: number }>("/api/products/actualizacion-masiva", { method: "POST", body: JSON.stringify(data) }),
   deleteProduct: (id: number | string) => request<void>(`/api/products/${id}`, { method: "DELETE" }),
   createSale: (data: CreateSalePayload) => request<unknown>("/api/sales", { method: "POST", body: JSON.stringify(data) }),
+  updateSale: (id: string, data: CreateSalePayload) =>
+    request<unknown>(`/api/sales/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteSale: (id: string) => request<void>(`/api/sales/${id}`, { method: "DELETE" }),
   listSalesPage: (params?: PaginationParams & SaleFilters) => {
     const query = new URLSearchParams();
     if (params?.product?.trim()) query.set("product", params.product.trim());

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddSaleButton from "../components/AddSaleButton";
+import AddSaleDialog from "../components/AddSaleDialog";
 import DataTable, { type Column } from "../components/DataTable";
 import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
@@ -131,6 +132,8 @@ export default function DashboardPage() {
   const rangeToPickerRef = useRef<HTMLInputElement>(null);
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
+  const [editingSale, setEditingSale] = useState<SaleRow | null>(null);
+  const [saleToDelete, setSaleToDelete] = useState<SaleRow | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [dateFilterOpen, setDateFilterOpen] = useState(false);
@@ -144,6 +147,7 @@ export default function DashboardPage() {
   const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
   const [debouncedCustomerSearch, setDebouncedCustomerSearch] = useState("");
   const [loadingSales, setLoadingSales] = useState(false);
+  const [deletingSale, setDeletingSale] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (product = debouncedProductSearch, customer = debouncedCustomerSearch, dateFilter = activeDateFilter) => {
@@ -245,6 +249,23 @@ export default function DashboardPage() {
     setRangeToInput("");
     setActiveDateFilter(null);
     setDateFilterError(null);
+  }
+
+  async function deleteSelectedSale() {
+    if (!saleToDelete) return;
+
+    setDeletingSale(true);
+    setError(null);
+    try {
+      await api.deleteSale(saleToDelete.id);
+      setSaleToDelete(null);
+      setSelectedSale(null);
+      await load();
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    } finally {
+      setDeletingSale(false);
+    }
   }
 
   const saleColumns: Column<SaleRow>[] = useMemo(
@@ -603,7 +624,69 @@ export default function DashboardPage() {
         </ModalPortal>
       ) : null}
 
-      {selectedSale ? <SaleDetailDialog sale={selectedSale} onClose={() => setSelectedSale(null)} /> : null}
+      {selectedSale ? (
+        <SaleDetailDialog
+          sale={selectedSale}
+          onClose={() => setSelectedSale(null)}
+          onEditSale={() => {
+            setEditingSale(selectedSale);
+            setSelectedSale(null);
+          }}
+          onDeleteSale={() => setSaleToDelete(selectedSale)}
+          deleting={deletingSale}
+        />
+      ) : null}
+
+      {editingSale ? (
+        <AddSaleDialog
+          initialSale={editingSale}
+          onClose={() => setEditingSale(null)}
+          onCreated={() => {
+            setEditingSale(null);
+            load();
+          }}
+        />
+      ) : null}
+
+      {saleToDelete ? (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[130] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4">
+            <button
+              type="button"
+              className="absolute inset-0"
+              aria-label="Cancelar eliminacion"
+              onClick={() => setSaleToDelete(null)}
+              disabled={deletingSale}
+            />
+            <div className="relative z-[140] w-full max-w-md rounded-t-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-lg">
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Eliminar venta</h3>
+              </div>
+              <div className="px-5 py-4 text-sm text-slate-700 dark:text-slate-300">
+                Desea eliminar la venta de {saleToDelete.customerName} por ${Number(saleToDelete.total).toFixed(2)}?
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setSaleToDelete(null)}
+                  disabled={deletingSale}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedSale}
+                  disabled={deletingSale}
+                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deletingSale ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      ) : null}
     </div>
   );
 }

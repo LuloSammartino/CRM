@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, type Customer, type Product } from "../lib/api";
+import { api, type Customer, type Product, type SaleRow } from "../lib/api";
 import { notifySaleCreated } from "../lib/events";
 import ModalPortal from "./ModalPortal";
+import SaleDetailDialog from "./SaleDetailDialog";
 import SaleProductItems, { type PriceMode, type SaleItemForm } from "./SaleProductItems";
 
 function todayISODateLocal() {
@@ -15,6 +16,7 @@ function todayISODateLocal() {
 type AddSaleDialogProps = {
   onClose: () => void;
   onCreated?: () => void;
+  initialSale?: SaleRow;
 };
 
 const COUNTER_CUSTOMER_NAME = "CLIENTE DE MOSTRADOR";
@@ -35,7 +37,33 @@ function createSaleItem(): SaleItemForm {
   };
 }
 
-function createInitialSaleItems() {
+function createSaleItemFromLine(line: SaleRow["lines"][number]): SaleItemForm {
+  const unitPrice = Number(line.unitPrice);
+  const productId = line.productId ?? line.sku;
+  return {
+    id: nextSaleItemId++,
+    product: productId
+      ? {
+          id: Number(productId),
+          nombre: line.productName,
+          precio1: String(unitPrice)
+        }
+      : null,
+    productId: productId ?? "",
+    productSearch: line.productName,
+    selectedProductName: line.productName,
+    qty: String(line.qty),
+    unitPrice,
+    priceMode: "manual"
+  };
+}
+
+function createInitialSaleItems(initialSale?: SaleRow) {
+  if (initialSale?.lines.length) {
+    const items = initialSale.lines.map(createSaleItemFromLine);
+    return { items, editingItemId: items[0]?.id ?? null };
+  }
+
   const item = createSaleItem();
   return { items: [item], editingItemId: item.id };
 }
@@ -50,20 +78,21 @@ function parseQty(value: string) {
   return Number.isFinite(number) ? number : 0;
 }
 
-export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps) {
+export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSaleDialogProps) {
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [soldAt, setSoldAt] = useState(todayISODateLocal);
-  const [customerId, setCustomerId] = useState("");
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomerName, setSelectedCustomerName] = useState("");
-  const [metodoPago, setMetodoPago] = useState("Efectivo");
+  const [soldAt, setSoldAt] = useState(() => initialSale?.fecha ?? initialSale?.createdAt?.slice(0, 10) ?? todayISODateLocal());
+  const [customerId, setCustomerId] = useState(() => initialSale?.customerId ?? "");
+  const [customerSearch, setCustomerSearch] = useState(() => initialSale?.customerName ?? "");
+  const [selectedCustomerName, setSelectedCustomerName] = useState(() => initialSale?.customerName ?? "");
+  const [metodoPago, setMetodoPago] = useState(() => initialSale?.metodoPago ?? "Efectivo");
   const [detalle, setDetalle] = useState("");
-  const [initialSaleItems] = useState(createInitialSaleItems);
+  const [confirmingSale, setConfirmingSale] = useState(false);
+  const [initialSaleItems] = useState(() => createInitialSaleItems(initialSale));
   const [saleItems, setSaleItems] = useState<SaleItemForm[]>(initialSaleItems.items);
   const [editingSaleItemId, setEditingSaleItemId] = useState<number | null>(initialSaleItems.editingItemId);
   const [activeProductItemId, setActiveProductItemId] = useState<number | null>(null);
@@ -78,6 +107,29 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
         0
       ),
     [saleItems]
+  );
+  const salePreview = useMemo<SaleRow>(
+    () => ({
+      id: initialSale?.id ?? "preview",
+      createdAt: soldAt,
+      fecha: soldAt,
+      customerId: customerId || null,
+      customerName: selectedCustomerName || customerSearch || "Cliente de mostrador",
+      metodoPago,
+      total: saleTotal,
+      lines: saleItems.map((item) => {
+        const qty = parseQty(item.qty);
+        const unitPrice = item.unitPrice;
+        return {
+          productName: item.selectedProductName || item.productSearch,
+          sku: "",
+          qty,
+          unitPrice,
+          lineTotal: qty * unitPrice
+        };
+      })
+    }),
+    [customerId, customerSearch, initialSale?.id, metodoPago, saleItems, saleTotal, selectedCustomerName, soldAt]
   );
 
   useEffect(() => {
@@ -205,14 +257,13 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
     });
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  function validateSale() {
     setError(null);
 
     const invalidProductIndex = saleItems.findIndex((item) => !item.productId);
     if (invalidProductIndex >= 0) {
       setError(`Selecciona un producto en la linea ${invalidProductIndex + 1}.`);
-      return;
+      return false;
     }
 
     const invalidQtyIndex = saleItems.findIndex((item) => {
@@ -221,23 +272,36 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
     });
     if (invalidQtyIndex >= 0) {
       setError(`La cantidad debe ser al menos 1 en la linea ${invalidQtyIndex + 1}.`);
-      return;
+      return false;
     }
 
     const invalidPriceIndex = saleItems.findIndex((item) => !Number.isFinite(item.unitPrice) || item.unitPrice < 0);
     if (invalidPriceIndex >= 0) {
       setError(`El precio no es valido en la linea ${invalidPriceIndex + 1}.`);
-      return;
+      return false;
     }
 
     if (isCuentaCorriente && !customerId) {
       setError("Selecciona un cliente para ventas en cuenta corriente.");
-      return;
+      return false;
     }
 
+    return true;
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (validateSale()) setConfirmingSale(true);
+  }
+
+  async function confirmSale() {
+    if (!validateSale()) {
+      setConfirmingSale(false);
+      return;
+    }
     setSaving(true);
     try {
-      await api.createSale({
+      const payload = {
         soldAt,
         customerId: customerId || null,
         metodoPago,
@@ -247,7 +311,12 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
           qty: parseQty(item.qty),
           unitPrice: item.unitPrice
         }))
-      });
+      };
+      if (initialSale) {
+        await api.updateSale(initialSale.id, payload);
+      } else {
+        await api.createSale(payload);
+      }
       notifySaleCreated();
       onCreated?.();
       onClose();
@@ -270,7 +339,9 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
         />
         <div className="relative z-[110] max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-lg border border-slate-200/90 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900 sm:rounded-lg">
           <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-4 dark:border-slate-700">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Nueva venta</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              {initialSale ? "Editar venta" : "Nueva venta"}
+            </h2>
             <button
               type="button"
               aria-label="Cerrar"
@@ -437,6 +508,15 @@ export default function AddSaleDialog({ onClose, onCreated }: AddSaleDialogProps
           </form>
         </div>
       </div>
+      {confirmingSale ? (
+        <SaleDetailDialog
+          sale={salePreview}
+          onClose={() => setConfirmingSale(false)}
+          onEdit={() => setConfirmingSale(false)}
+          onConfirm={confirmSale}
+          confirming={saving}
+        />
+      ) : null}
     </ModalPortal>
   );
 }

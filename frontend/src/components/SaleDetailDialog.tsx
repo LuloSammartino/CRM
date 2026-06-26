@@ -4,6 +4,12 @@ import ModalPortal from "./ModalPortal";
 type Props = {
   sale: SaleRow;
   onClose: () => void;
+  onConfirm?: () => void;
+  onEdit?: () => void;
+  onEditSale?: () => void;
+  onDeleteSale?: () => void;
+  confirming?: boolean;
+  deleting?: boolean;
 };
 
 function formatMoney(value: number) {
@@ -18,7 +24,16 @@ function formatSaleDate(iso: string) {
   }
 }
 
-export default function SaleDetailDialog({ sale, onClose }: Props) {
+export default function SaleDetailDialog({
+  sale,
+  onClose,
+  onConfirm,
+  onEdit,
+  onEditSale,
+  onDeleteSale,
+  confirming = false,
+  deleting = false
+}: Props) {
   function printSale() {
     const printWindow = window.open("", "_blank", "width=800,height=600");
     if (!printWindow) return;
@@ -123,13 +138,15 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
             </p>
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="rounded-md bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"
-              onClick={printSale}
-            >
-              Imprimir
-            </button>
+            {onConfirm ? null : (
+              <button
+                type="button"
+                className="rounded-md bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"
+                onClick={printSale}
+              >
+                Imprimir
+              </button>
+            )}
             <button
               type="button"
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-bold leading-none text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -189,6 +206,49 @@ export default function SaleDetailDialog({ sale, onClose }: Props) {
             </table>
           </div>
         </div>
+        {onConfirm && onEdit ? (
+          <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={confirming}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={confirming}
+              className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+            >
+              {confirming ? "Guardando..." : "Confirmar Venta"}
+            </button>
+          </div>
+        ) : null}
+        {!onConfirm && (onEditSale || onDeleteSale) ? (
+          <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-700">
+            {onEditSale ? (
+              <button
+                type="button"
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                onClick={onEditSale}
+              >
+                Editar
+              </button>
+            ) : null}
+            {onDeleteSale ? (
+              <button
+                type="button"
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                onClick={onDeleteSale}
+                disabled={deleting}
+              >
+                {deleting ? "Eliminando..." : "Eliminar"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
     </ModalPortal>

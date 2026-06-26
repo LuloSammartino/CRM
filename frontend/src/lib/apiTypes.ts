@@ -155,6 +155,8 @@ export type CreateSalePayload =
     };
 
 export type SaleLineDisplay = {
+  id?: string;
+  productId?: string;
   productName: string;
   sku: string;
   qty: number;
