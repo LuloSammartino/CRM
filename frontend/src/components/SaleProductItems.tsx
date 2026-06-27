@@ -86,17 +86,29 @@ export default function SaleProductItems({
         return (
           <div
             key={item.id}
-            className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50/70 dark:border-slate-700 dark:bg-slate-800/40"
+            className={`overflow-hidden rounded-lg border bg-slate-50/70 transition-[box-shadow,border-color,background-color] duration-200 dark:bg-slate-800/40 ${
+              isEditing
+                ? "border-violet-200 bg-white shadow-md shadow-violet-900/10 ring-1 ring-violet-100 dark:border-violet-700 dark:bg-slate-900/70 dark:shadow-black/30 dark:ring-violet-900/40"
+                : "border-slate-200 shadow-sm dark:border-slate-700"
+            }`}
           >
             <div className="flex items-center justify-between gap-3 bg-white px-3 py-2 dark:bg-slate-900/50">
               <button
                 type="button"
-                className="min-w-0 flex-1 truncate text-left text-sm font-bold text-slate-800 dark:text-slate-100"
+                className="min-w-0 flex flex-1 items-center gap-2 text-left"
                 onClick={() => setEditingSaleItemId(item.id)}
               >
-                {item.selectedProductName || item.productSearch || `Producto ${index + 1}`}
+                <span className="shrink-0 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-bold text-violet-700 dark:bg-violet-950/50 dark:text-violet-200">
+                  #{index + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800 dark:text-slate-100">
+                  {item.selectedProductName || item.productSearch || `Producto ${index + 1}`}
+                </span>
               </button>
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="hidden text-sm font-bold tabular-nums text-emerald-700 dark:text-emerald-300 sm:inline">
+                  ${itemTotal.toFixed(2)}
+                </span>
                 <button
                   type="button"
                   aria-label={isEditing ? "Minimizar producto" : "Editar producto"}

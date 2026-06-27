@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, type Customer, type Product, type SaleRow } from "../lib/api";
 import { notifySaleCreated } from "../lib/events";
+import AddCustomerDialog from "./AddCustomerDialog";
 import ModalPortal from "./ModalPortal";
 import SaleDetailDialog from "./SaleDetailDialog";
 import SaleProductItems, { type PriceMode, type SaleItemForm } from "./SaleProductItems";
@@ -20,6 +21,7 @@ type AddSaleDialogProps = {
 };
 
 const COUNTER_CUSTOMER_NAME = "CLIENTE DE MOSTRADOR";
+const CUSTOMER_LOOKUP_LIMIT = 50;
 const PRODUCT_LOOKUP_LIMIT = 50;
 
 let nextSaleItemId = 1;
@@ -84,6 +86,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerLookupTotal, setCustomerLookupTotal] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [soldAt, setSoldAt] = useState(() => initialSale?.fecha ?? initialSale?.createdAt?.slice(0, 10) ?? todayISODateLocal());
   const [customerId, setCustomerId] = useState(() => initialSale?.customerId ?? "");
@@ -91,6 +94,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
   const [selectedCustomerName, setSelectedCustomerName] = useState(() => initialSale?.customerName ?? "");
   const [metodoPago, setMetodoPago] = useState(() => initialSale?.metodoPago ?? "Efectivo");
   const [detalle, setDetalle] = useState("");
+  const [showCreateCustomer, setShowCreateCustomer] = useState(false);
   const [confirmingSale, setConfirmingSale] = useState(false);
   const [initialSaleItems] = useState(() => createInitialSaleItems(initialSale));
   const [saleItems, setSaleItems] = useState<SaleItemForm[]>(initialSaleItems.items);
@@ -136,8 +140,11 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
     const timeoutId = window.setTimeout(() => {
       setLoadingCustomers(true);
       api
-        .listCustomersPage({ q: customerSearch, limit: 10, offset: 0 })
-        .then((result) => setCustomers(result.rows))
+        .listCustomersPage({ q: customerSearch, limit: CUSTOMER_LOOKUP_LIMIT, offset: 0 })
+        .then((result) => {
+          setCustomers(result.rows);
+          setCustomerLookupTotal(result.total);
+        })
         .catch((e) => setError(String((e as Error)?.message ?? e)))
         .finally(() => setLoadingCustomers(false));
     }, 250);
@@ -177,6 +184,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
       }
 
       setCustomers([customer]);
+      setCustomerLookupTotal(1);
       setCustomerId(customer.id);
       setCustomerSearch(customer.name);
       setSelectedCustomerName(customer.name);
@@ -220,6 +228,20 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
       .finally(() => setLoadingProducts(false));
   }
 
+  function loadMoreCustomers() {
+    if (loadingCustomers || customers.length >= customerLookupTotal) return;
+
+    setLoadingCustomers(true);
+    api
+      .listCustomersPage({ q: customerSearch, limit: CUSTOMER_LOOKUP_LIMIT, offset: customers.length })
+      .then((result) => {
+        setCustomers((current) => [...current, ...result.rows]);
+        setCustomerLookupTotal(result.total);
+      })
+      .catch((e) => setError(String((e as Error)?.message ?? e)))
+      .finally(() => setLoadingCustomers(false));
+  }
+
   function updatePriceMode(itemId: number, mode: PriceMode) {
     const item = saleItems.find((currentItem) => currentItem.id === itemId);
     if (!item) return;
@@ -244,6 +266,14 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
     const item = createSaleItem();
     setSaleItems((current) => [...current, item]);
     setEditingSaleItemId(item.id);
+  }
+
+  function selectCustomer(customer: Customer) {
+    setCustomers([customer]);
+    setCustomerLookupTotal(1);
+    setCustomerId(customer.id);
+    setCustomerSearch(customer.name);
+    setSelectedCustomerName(customer.name);
   }
 
   function removeSaleItem(itemId: number) {
@@ -400,6 +430,13 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
                   >
                     Cliente de mostrador
                   </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+                    onClick={() => setShowCreateCustomer(true)}
+                  >
+                    Agregar cliente
+                  </button>
                 </span>
                 <input
                   type="search"
@@ -414,29 +451,40 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
                 />
 
                 {showCustomerResults ? (
-                  <div className="absolute left-0 right-0 top-full z-[120] mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                    {loadingCustomers ? (
+                  <div
+                    className="absolute left-0 right-0 top-full z-[120] mt-1 max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                    onScroll={(e) => {
+                      const el = e.currentTarget;
+                      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 16) loadMoreCustomers();
+                    }}
+                  >
+                    {loadingCustomers && !customers.length ? (
                       <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Buscando clientes...</div>
                     ) : customers.length ? (
-                      customers.map((customer) => (
-                        <button
-                          key={customer.id}
-                          type="button"
-                          className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-violet-50 dark:text-slate-100 dark:hover:bg-slate-800"
-                          onClick={() => {
-                            setCustomerId(customer.id);
-                            setCustomerSearch(customer.name);
-                            setSelectedCustomerName(customer.name);
-                          }}
-                        >
-                          <span className="block font-medium">{customer.name}</span>
-                          {customer.phone || customer.cuit ? (
-                            <span className="block text-xs text-slate-500 dark:text-slate-400">
-                              {[customer.phone, customer.cuit].filter(Boolean).join(" - ")}
-                            </span>
-                          ) : null}
-                        </button>
-                      ))
+                      <>
+                        {customers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-violet-50 dark:text-slate-100 dark:hover:bg-slate-800"
+                            onClick={() => {
+                              setCustomerId(customer.id);
+                              setCustomerSearch(customer.name);
+                              setSelectedCustomerName(customer.name);
+                            }}
+                          >
+                            <span className="block font-medium">{customer.name}</span>
+                            {customer.phone || customer.cuit ? (
+                              <span className="block text-xs text-slate-500 dark:text-slate-400">
+                                {[customer.phone, customer.cuit].filter(Boolean).join(" - ")}
+                              </span>
+                            ) : null}
+                          </button>
+                        ))}
+                        {loadingCustomers ? (
+                          <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Cargando mas clientes...</div>
+                        ) : null}
+                      </>
                     ) : (
                       <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">Sin coincidencias.</div>
                     )}
@@ -508,6 +556,15 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
           </form>
         </div>
       </div>
+      {showCreateCustomer ? (
+        <AddCustomerDialog
+          onClose={() => setShowCreateCustomer(false)}
+          onCreated={(customer) => {
+            selectCustomer(customer);
+            setShowCreateCustomer(false);
+          }}
+        />
+      ) : null}
       {confirmingSale ? (
         <SaleDetailDialog
           sale={salePreview}

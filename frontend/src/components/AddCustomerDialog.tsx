@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { api } from "../lib/api";
+import { api, type Customer } from "../lib/api";
 import { cleanCustomerForm, customerFields, emptyCustomerForm, ivaOptions, type CustomerForm } from "./customerFormUtils";
 import ModalPortal from "./ModalPortal";
 
 type AddCustomerDialogProps = {
   onClose: () => void;
-  onCreated: () => void;
+  onCreated: (customer: Customer) => void;
 };
 
 export default function AddCustomerDialog({ onClose, onCreated }: AddCustomerDialogProps) {
@@ -33,8 +33,8 @@ export default function AddCustomerDialog({ onClose, onCreated }: AddCustomerDia
     setSaving(true);
 
     try {
-      await api.createCustomer(payload);
-      onCreated();
+      const customer = await api.createCustomer(payload);
+      onCreated(customer);
       onClose();
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
