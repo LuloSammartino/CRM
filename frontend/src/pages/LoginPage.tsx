@@ -46,7 +46,7 @@ export default function LoginPage({ onLogin }: Props) {
       setAuthToken(session.token);
       onLogin();
     } catch {
-      setError("Contrasena incorrecta.");
+      setError("Contraseña incorrecta.");
     } finally {
       setSaving(false);
     }
@@ -57,7 +57,7 @@ export default function LoginPage({ onLogin }: Props) {
       <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
         <h1 className="text-lg font-bold">FEBRIEL CRM</h1>
         <label className="mt-5 block text-sm">
-          <span className="font-medium text-slate-700 dark:text-slate-300">Contrasena</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">Contraseña</span>
           <div className="mt-1 flex rounded-md border border-slate-300 bg-white focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-200 dark:border-slate-600 dark:bg-slate-800">
             <input
               ref={passwordInputRef}

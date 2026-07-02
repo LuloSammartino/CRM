@@ -17,6 +17,7 @@ export default function AddCashMovementButton({ onCreated }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [concepto, setConcepto] = useState("");
+  const [conceptoManual, setConceptoManual] = useState("");
   const [monto, setMonto] = useState("");
 
   const close = () => {
@@ -28,8 +29,9 @@ export default function AddCashMovementButton({ onCreated }: Props) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    const conceptoFinal = concepto === "manual" ? conceptoManual : concepto;
 
-    if (!concepto.trim()) {
+    if (!conceptoFinal.trim()) {
       setError("Ingresa un concepto.");
       return;
     }
@@ -41,10 +43,11 @@ export default function AddCashMovementButton({ onCreated }: Props) {
 
     setSaving(true);
     try {
-      await api.createCashMovement({ concepto: concepto.trim(), monto: amount, tipo: "salida" });
+      await api.createCashMovement({ concepto: conceptoFinal.trim(), monto: amount, tipo: "salida" });
       notifyCashMovementCreated();
       onCreated?.();
       setConcepto("");
+      setConceptoManual("");
       setMonto("");
       setOpen(false);
     } catch (e) {
@@ -99,12 +102,27 @@ export default function AddCashMovementButton({ onCreated }: Props) {
 
                 <label className="grid gap-1 text-sm">
                   <span className="font-medium text-slate-700 dark:text-slate-300">Concepto</span>
-                  <input
+                  <select
                     value={concepto}
                     onChange={(e) => setConcepto(e.target.value)}
                     className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                     required
-                  />
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="Alquiler">Alquiler</option>
+                    <option value="Sueldo">Sueldo</option>
+                    <option value="Flete">Flete</option>
+                    
+                  </select>
+                  {concepto === "manual" ? (
+                    <input
+                      value={conceptoManual}
+                      onChange={(e) => setConceptoManual(e.target.value)}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="Escribir concepto"
+                      required
+                    />
+                  ) : null}
                 </label>
 
                 <div className="grid gap-3 sm:grid-cols-2">
