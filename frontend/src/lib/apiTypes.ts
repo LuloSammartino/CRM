@@ -171,6 +171,9 @@ export type SaleRow = {
   hora?: string | null;
   customerId: string | null;
   customerName: string;
+  customerDireccion?: string | null;
+  customerDireccion1?: string | null;
+  customerDireccion2?: string | null;
   metodoPago?: string;
   total: number;
   lines: SaleLineDisplay[];

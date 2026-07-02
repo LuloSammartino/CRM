@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { SaleRow } from "../lib/api";
 import ModalPortal from "./ModalPortal";
 
@@ -34,7 +35,16 @@ export default function SaleDetailDialog({
   confirming = false,
   deleting = false
 }: Props) {
-  function printSale() {
+  const [printAddressOpen, setPrintAddressOpen] = useState(false);
+  const [printAddressChoice, setPrintAddressChoice] = useState("");
+  const [manualAddress, setManualAddress] = useState("");
+  const addresses = [
+    { label: "Direccion", value: sale.customerDireccion },
+    { label: "Direccion1", value: sale.customerDireccion1 },
+    { label: "Direccion2", value: sale.customerDireccion2 }
+  ].filter((item) => item.value?.trim());
+
+  function printSale(address = "") {
     const printWindow = window.open("", "_blank", "width=800,height=600");
     if (!printWindow) return;
 
@@ -76,6 +86,7 @@ export default function SaleDetailDialog({
     addText(doc.body, "Detalle de venta", "h1");
     addInfo("Fecha", formatSaleDate(sale.createdAt));
     addInfo("Cliente", sale.customerName);
+    if (address.trim()) addInfo("Direccion", address.trim());
     addInfo("Pago", sale.metodoPago || "Sin especificar");
 
     const table = doc.createElement("table");
@@ -115,8 +126,15 @@ export default function SaleDetailDialog({
     }, 0);
   }
 
+  function printWithSelectedAddress() {
+    const address = printAddressChoice === "manual" ? manualAddress : printAddressChoice;
+    printSale(address);
+    setPrintAddressOpen(false);
+  }
+
   return (
     <ModalPortal>
+    <>
     <div
       className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
       role="dialog"
@@ -142,7 +160,7 @@ export default function SaleDetailDialog({
               <button
                 type="button"
                 className="rounded-md bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"
-                onClick={printSale}
+                onClick={() => setPrintAddressOpen(true)}
               >
                 Imprimir
               </button>
@@ -251,6 +269,75 @@ export default function SaleDetailDialog({
         ) : null}
       </div>
     </div>
+    {printAddressOpen ? (
+      <div
+        className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/45 px-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="print-address-title"
+        onMouseDown={() => setPrintAddressOpen(false)}
+      >
+        <div
+          className="grid w-full max-w-sm gap-3 rounded-lg border border-slate-200 bg-white p-4 text-sm shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <h3 id="print-address-title" className="font-semibold text-slate-900 dark:text-white">
+              Desea agregar una direccion?
+            </h3>
+            <button
+              type="button"
+              className="rounded-md px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              aria-label="Cerrar"
+              onClick={() => setPrintAddressOpen(false)}
+            >
+              x
+            </button>
+          </div>
+          <select
+            value={printAddressChoice}
+            onChange={(event) => setPrintAddressChoice(event.target.value)}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+          >
+            <option value="">Sin direccion</option>
+            {addresses.map((address) => (
+              <option key={address.label} value={address.value ?? ""}>
+                {address.label}: {address.value}
+              </option>
+            ))}
+            <option value="manual">Ingresar manual</option>
+          </select>
+          {printAddressChoice === "manual" ? (
+            <input
+              value={manualAddress}
+              onChange={(event) => setManualAddress(event.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              placeholder="Direccion"
+            />
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              onClick={() => {
+                printSale();
+                setPrintAddressOpen(false);
+              }}
+            >
+              Imprimir sin direccion
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600"
+              onClick={printWithSelectedAddress}
+            >
+              Imprimir
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
     </ModalPortal>
   );
 }
