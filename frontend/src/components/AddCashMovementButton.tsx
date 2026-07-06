@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api } from "../lib/api";
 import { notifyCashMovementCreated } from "../lib/events";
 import ModalPortal from "./ModalPortal";
@@ -17,21 +17,38 @@ export default function AddCashMovementButton({ onCreated }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [concepto, setConcepto] = useState("");
-  const [conceptoManual, setConceptoManual] = useState("");
+  const [conceptos, setConceptos] = useState<string[]>([]);
+  const [showConceptOptions, setShowConceptOptions] = useState(false);
+  const [saveNewConcept, setSaveNewConcept] = useState(false);
   const [monto, setMonto] = useState("");
+
+  const isNewConcept = useMemo(() => {
+    const value = concepto.trim().toLocaleLowerCase("es");
+    return Boolean(value) && !conceptos.some((item) => item.trim().toLocaleLowerCase("es") === value);
+  }, [concepto, conceptos]);
+  const filteredConcepts = useMemo(() => {
+    const value = concepto.trim().toLocaleLowerCase("es");
+    return value ? conceptos.filter((item) => item.toLocaleLowerCase("es").includes(value)) : conceptos;
+  }, [concepto, conceptos]);
+
+  useEffect(() => {
+    if (!open) return;
+    api.listExpenseConcepts().then(setConceptos).catch(() => setConceptos([]));
+  }, [open]);
 
   const close = () => {
     if (saving) return;
     setOpen(false);
+    setShowConceptOptions(false);
     setError(null);
   };
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    const conceptoFinal = concepto === "manual" ? conceptoManual : concepto;
+    const conceptoFinal = concepto.trim();
 
-    if (!conceptoFinal.trim()) {
+    if (!conceptoFinal) {
       setError("Ingresa un concepto.");
       return;
     }
@@ -43,11 +60,14 @@ export default function AddCashMovementButton({ onCreated }: Props) {
 
     setSaving(true);
     try {
-      await api.createCashMovement({ concepto: conceptoFinal.trim(), monto: amount, tipo: "salida" });
+      if (isNewConcept && saveNewConcept) {
+        await api.createExpenseConcept(conceptoFinal);
+      }
+      await api.createCashMovement({ concepto: conceptoFinal, monto: amount, tipo: "salida" });
       notifyCashMovementCreated();
       onCreated?.();
       setConcepto("");
-      setConceptoManual("");
+      setSaveNewConcept(false);
       setMonto("");
       setOpen(false);
     } catch (e) {
@@ -72,7 +92,7 @@ export default function AddCashMovementButton({ onCreated }: Props) {
           <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
             <button
               type="button"
-              className="absolute inset-0 bg-slate-900/50"
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
               aria-label="Cerrar"
               onClick={close}
               disabled={saving}
@@ -100,30 +120,52 @@ export default function AddCashMovementButton({ onCreated }: Props) {
                   </div>
                 ) : null}
 
-                <label className="grid gap-1 text-sm">
+                <div className="grid gap-1 text-sm">
                   <span className="font-medium text-slate-700 dark:text-slate-300">Concepto</span>
-                  <select
-                    value={concepto}
-                    onChange={(e) => setConcepto(e.target.value)}
-                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                    required
-                  >
-                    <option value="manual">Manual</option>
-                    <option value="Alquiler">Alquiler</option>
-                    <option value="Sueldo">Sueldo</option>
-                    <option value="Flete">Flete</option>
-                    
-                  </select>
-                  {concepto === "manual" ? (
+                  <div className="relative">
                     <input
-                      value={conceptoManual}
-                      onChange={(e) => setConceptoManual(e.target.value)}
-                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                      placeholder="Escribir concepto"
+                      value={concepto}
+                      onBlur={() => setTimeout(() => setShowConceptOptions(false), 100)}
+                      onChange={(e) => {
+                        setConcepto(e.target.value);
+                        setShowConceptOptions(true);
+                      }}
+                      onFocus={() => setShowConceptOptions(true)}
+                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+                      placeholder="Buscar o crear concepto"
                       required
                     />
+                    {showConceptOptions && filteredConcepts.length > 0 ? (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-40 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                        {filteredConcepts.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setConcepto(item);
+                              setShowConceptOptions(false);
+                            }}
+                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-violet-50 hover:text-violet-900 dark:text-slate-100 dark:hover:bg-violet-950/40 dark:hover:text-violet-100"
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  {isNewConcept ? (
+                    <label className="mt-1 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100">
+                      <input
+                        type="checkbox"
+                        checked={saveNewConcept}
+                        onChange={(e) => setSaveNewConcept(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-2 focus:ring-violet-200 dark:border-slate-600"
+                      />
+                      Guardar este concepto para futuros gastos
+                    </label>
                   ) : null}
-                </label>
+                </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="grid gap-1 text-sm">

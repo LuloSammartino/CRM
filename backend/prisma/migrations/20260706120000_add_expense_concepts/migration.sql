@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS conceptos_gasto (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(255) NOT NULL UNIQUE
+);

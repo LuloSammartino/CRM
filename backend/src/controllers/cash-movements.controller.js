@@ -27,6 +27,9 @@ const movementSchema = z.object({
   monto: z.coerce.number().positive().max(9999999),
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
 });
+const expenseConceptSchema = z.object({
+  nombre: z.string().trim().min(1).max(255)
+});
 
 export async function listCashMovements(req, res, next) {
   try {
@@ -54,6 +57,39 @@ export async function listCashMovements(req, res, next) {
       offset
     });
   } catch (err) {
+    next(err);
+  }
+}
+
+export async function listExpenseConcepts(_req, res, next) {
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT nombre
+      FROM conceptos_gasto
+      ORDER BY nombre ASC
+    `;
+
+    res.json(rows.map((row) => row.nombre));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createExpenseConcept(req, res, next) {
+  try {
+    const input = expenseConceptSchema.parse(req.body);
+    const [row] = await prisma.$queryRaw`
+      INSERT INTO conceptos_gasto (nombre)
+      VALUES (${input.nombre})
+      ON CONFLICT (nombre) DO UPDATE SET nombre = EXCLUDED.nombre
+      RETURNING nombre
+    `;
+
+    res.status(201).json(row.nombre);
+  } catch (err) {
+    if (err?.name === "ZodError") {
+      return res.status(400).json({ error: "ValidationError", details: err.errors });
+    }
     next(err);
   }
 }

@@ -125,6 +125,9 @@ export const api = {
   },
   createCashMovement: (data: CreateCashMovementPayload) =>
     request<CashMovement>("/api/movimientos-caja", { method: "POST", body: JSON.stringify(data) }),
+  listExpenseConcepts: () => request<string[]>("/api/movimientos-caja/conceptos"),
+  createExpenseConcept: (nombre: string) =>
+    request<string>("/api/movimientos-caja/conceptos", { method: "POST", body: JSON.stringify({ nombre }) }),
   listCustomers: () => request<Customer[]>("/api/customers"),
   listCustomersPage: (filters?: CustomerFilters & PaginationParams) => {
     const params = new URLSearchParams();
