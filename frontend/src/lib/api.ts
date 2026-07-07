@@ -125,6 +125,9 @@ export const api = {
   },
   createCashMovement: (data: CreateCashMovementPayload) =>
     request<CashMovement>("/api/movimientos-caja", { method: "POST", body: JSON.stringify(data) }),
+  updateCashMovement: (id: string, data: CreateCashMovementPayload) =>
+    request<CashMovement>(`/api/movimientos-caja/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteCashMovement: (id: string) => request<void>(`/api/movimientos-caja/${id}`, { method: "DELETE" }),
   listExpenseConcepts: () => request<string[]>("/api/movimientos-caja/conceptos"),
   createExpenseConcept: (nombre: string) =>
     request<string>("/api/movimientos-caja/conceptos", { method: "POST", body: JSON.stringify({ nombre }) }),

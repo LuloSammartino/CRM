@@ -111,3 +111,43 @@ export async function createCashMovement(req, res, next) {
     next(err);
   }
 }
+
+export async function updateCashMovement(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "Movimiento invalido" });
+
+    const input = movementSchema.parse(req.body);
+    const [row] = await prisma.$queryRaw`
+      UPDATE movimientos_caja
+      SET concepto = ${input.concepto}, monto = ${input.monto}, tipo = ${input.tipo}, fecha = COALESCE(${input.fecha ?? null}::date, fecha)
+      WHERE id = ${id}
+      RETURNING id, concepto, monto, tipo, fecha
+    `;
+
+    if (!row) return res.status(404).json({ message: "Movimiento no encontrado" });
+    res.json(cleanMovement(row));
+  } catch (err) {
+    if (err?.name === "ZodError") {
+      return res.status(400).json({ error: "ValidationError", details: err.errors });
+    }
+    next(err);
+  }
+}
+
+export async function deleteCashMovement(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ message: "Movimiento invalido" });
+
+    const rows = await prisma.$queryRaw`
+      DELETE FROM movimientos_caja
+      WHERE id = ${id}
+      RETURNING id
+    `;
+    if (rows.length === 0) return res.status(404).json({ message: "Movimiento no encontrado" });
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}

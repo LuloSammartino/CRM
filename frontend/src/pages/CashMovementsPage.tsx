@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import AddCashMovementButton from "../components/AddCashMovementButton";
+import AddCashMovementButton, { CashMovementDialog } from "../components/AddCashMovementButton";
 import AddSaleButton from "../components/AddSaleButton";
+import AddSaleDialog from "../components/AddSaleDialog";
 import DataTable, { type Column } from "../components/DataTable";
+import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
 import { api, type CashMovement, type SaleRow } from "../lib/api";
 import { CRM_CASH_MOVEMENT_CREATED_EVENT, CRM_SALE_CREATED_EVENT } from "../lib/events";
@@ -15,6 +17,8 @@ type CashRow = {
   concepto: string;
   tipo: "venta" | "deuda" | "gasto";
   monto: number;
+  sale?: SaleRow;
+  expense?: CashMovement;
 };
 
 type ViewMode = "todo" | "ingreso" | "egreso";
@@ -42,6 +46,10 @@ export default function CashMovementsPage() {
   const [expenses, setExpenses] = useState<CashMovement[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("todo");
   const [loading, setLoading] = useState(false);
+  const [editingSale, setEditingSale] = useState<SaleRow | null>(null);
+  const [editingExpense, setEditingExpense] = useState<CashMovement | null>(null);
+  const [deletingRow, setDeletingRow] = useState<CashRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -81,14 +89,16 @@ export default function CashMovementsPage() {
           fecha: sale.fecha ?? sale.createdAt.slice(0, 10),
           concepto: saleConcept(sale),
           tipo: "venta" as const,
-          monto: Number(sale.total)
+          monto: Number(sale.total),
+          sale
         })),
       ...expenses.map((expense) => ({
         id: `expense-${expense.id}`,
         fecha: expense.fecha,
         concepto: expense.concepto,
         tipo: expense.tipo === "entrada" ? "deuda" as const : "gasto" as const,
-        monto: expense.monto
+        monto: expense.monto,
+        expense
       }))
     ],
     [expenses, sales]
@@ -103,6 +113,23 @@ export default function CashMovementsPage() {
   const balance = totalIncome - totalExpenses;
   const dateLabel = date === todayISODateLocal() ? "Hoy" : fmtDate(date);
 
+  async function deleteSelectedRow() {
+    if (!deletingRow) return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      if (deletingRow.sale) await api.deleteSale(deletingRow.sale.id);
+      if (deletingRow.expense) await api.deleteCashMovement(deletingRow.expense.id);
+      setDeletingRow(null);
+      await load();
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const columns: Column<CashRow>[] = useMemo(
     () => [
       { key: "concepto", header: "Concepto", render: (row) => <span className="font-medium">{row.concepto}</span> },
@@ -115,6 +142,37 @@ export default function CashMovementsPage() {
           <span className={row.tipo !== "gasto" ? "font-bold text-emerald-700 dark:text-emerald-300" : "font-bold text-red-700 dark:text-red-300"}>
             {row.tipo !== "gasto" ? "+" : "-"}{fmtMoney(row.monto)}
           </span>
+        )
+      },
+      {
+        key: "actions",
+        header: "",
+        className: "whitespace-nowrap text-right",
+        render: (row) => (
+          <div className="flex justify-end gap-1.5">
+            <button
+              type="button"
+              aria-label={`Editar ${row.tipo === "venta" ? "venta" : "gasto"}`}
+              title="Editar"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-sky-600 text-white hover:bg-sky-700"
+              onClick={() => row.sale ? setEditingSale(row.sale) : setEditingExpense(row.expense ?? null)}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m16.86 4.49 2.65 2.65M6 18l3.1-.34 9.72-9.72a1.87 1.87 0 0 0-2.65-2.65L6.45 15.01 6 18Z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label={`Eliminar ${row.tipo === "venta" ? "venta" : "gasto"}`}
+              title="Eliminar"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200 dark:hover:bg-red-950/60"
+              onClick={() => setDeletingRow(row)}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+              </svg>
+            </button>
+          </div>
         )
       }
     ],
@@ -136,7 +194,7 @@ export default function CashMovementsPage() {
             />
           </label>
           <AddSaleButton onCreated={load} />
-          <AddCashMovementButton />
+          <AddCashMovementButton defaultDate={date} />
         </div>
       </div>
 
@@ -202,6 +260,60 @@ export default function CashMovementsPage() {
         loadingMessage="Cargando caja diaria..."
         emptyMessage="No hay ventas ni gastos para esta fecha."
       />
+
+      {editingSale ? (
+        <AddSaleDialog
+          initialSale={editingSale}
+          onClose={() => setEditingSale(null)}
+          onCreated={() => {
+            setEditingSale(null);
+            load();
+          }}
+        />
+      ) : null}
+
+      {editingExpense ? (
+        <CashMovementDialog
+          initialMovement={editingExpense}
+          defaultDate={date}
+          onClose={() => setEditingExpense(null)}
+        />
+      ) : null}
+
+      {deletingRow ? (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-slate-900">
+              <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Eliminar {deletingRow.tipo === "venta" ? "venta" : "gasto"}
+                </h2>
+              </div>
+              <div className="px-5 py-4 text-sm text-slate-700 dark:text-slate-300">
+                Desea eliminar {deletingRow.concepto} por {fmtMoney(deletingRow.monto)}?
+              </div>
+              <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setDeletingRow(null)}
+                  disabled={deleting}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedRow}
+                  disabled={deleting}
+                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deleting ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      ) : null}
     </div>
   );
 }

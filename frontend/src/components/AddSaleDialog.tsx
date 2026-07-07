@@ -367,7 +367,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
           onClick={onClose}
           disabled={saving}
         />
-        <div className="relative z-[110] max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-lg border border-slate-200/90 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900 sm:rounded-lg">
+        <div className="relative z-[110] flex max-h-[90dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-lg border border-slate-200/90 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900 sm:rounded-lg">
           <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-4 dark:border-slate-700">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {initialSale ? "Editar venta" : "Nueva venta"}
@@ -385,14 +385,14 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
             </button>
           </div>
 
-          <form onSubmit={submit} className="space-y-4 px-5 py-4">
+          <form onSubmit={submit} className="grid min-h-0 gap-4 overflow-y-auto px-5 py-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(520px,1.2fr)]">
             {error ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-200">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/50 dark:text-red-200 lg:col-span-2">
                 {error}
               </div>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid content-start gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40 sm:grid-cols-2">
               <label className="block text-sm">
                 <span className="font-medium text-slate-700 dark:text-slate-300">Fecha de venta</span>
                 <input
@@ -506,52 +506,54 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
               ) : null}
             </div>
 
-            <SaleProductItems
-              saleItems={saleItems}
-              products={products}
-              loadingProducts={loadingProducts}
-              activeProductItemId={activeProductItemId}
-              editingSaleItemId={editingSaleItemId}
-              setActiveProductItemId={setActiveProductItemId}
-              setEditingSaleItemId={setEditingSaleItemId}
-              setProductLookupQuery={setProductLookupQuery}
-              updateSaleItem={updateSaleItem}
-              selectProduct={selectProduct}
-              loadMoreProducts={loadMoreProducts}
-              updatePriceMode={updatePriceMode}
-              updateQty={updateQty}
-              removeSaleItem={removeSaleItem}
-            />
+            <div className="grid min-h-0 content-start gap-3">
+              <SaleProductItems
+                saleItems={saleItems}
+                products={products}
+                loadingProducts={loadingProducts}
+                activeProductItemId={activeProductItemId}
+                editingSaleItemId={editingSaleItemId}
+                setActiveProductItemId={setActiveProductItemId}
+                setEditingSaleItemId={setEditingSaleItemId}
+                setProductLookupQuery={setProductLookupQuery}
+                updateSaleItem={updateSaleItem}
+                selectProduct={selectProduct}
+                loadMoreProducts={loadMoreProducts}
+                updatePriceMode={updatePriceMode}
+                updateQty={updateQty}
+                removeSaleItem={removeSaleItem}
+              />
 
-            <button
-              type="button"
-              className="w-full rounded-md border border-dashed border-violet-300 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200 dark:hover:bg-violet-950/50"
-              onClick={addSaleItem}
-            >
-              + Agregar otro producto
-            </button>
-
-            <div className="flex items-center justify-between rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900/50 dark:bg-emerald-950/40">
-              <span className="font-medium text-emerald-800 dark:text-emerald-200">Total</span>
-              <span className="text-lg font-bold tabular-nums text-emerald-900 dark:text-emerald-100">${saleTotal.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
               <button
                 type="button"
-                onClick={onClose}
-                disabled={saving}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="w-full rounded-md border border-dashed border-violet-300 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200 dark:hover:bg-violet-950/50"
+                onClick={addSaleItem}
               >
-                Cancelar
+                + Agregar otro producto
               </button>
-              <button
-                type="submit"
-                disabled={saving || loadingCustomers || loadingProducts}
-                className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
-              >
-                {saving ? "Guardando..." : "Guardar venta"}
-              </button>
+
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900/50 dark:bg-emerald-950/40">
+                <span className="font-medium text-emerald-800 dark:text-emerald-200">Total</span>
+                <span className="text-lg font-bold tabular-nums text-emerald-900 dark:text-emerald-100">${saleTotal.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={saving}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || loadingCustomers || loadingProducts}
+                  className="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+                >
+                  {saving ? "Guardando..." : "Guardar venta"}
+                </button>
+              </div>
             </div>
           </form>
         </div>

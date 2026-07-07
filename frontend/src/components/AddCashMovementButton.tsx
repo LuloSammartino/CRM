@@ -1,26 +1,39 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api } from "../lib/api";
+import { api, type CashMovement } from "../lib/api";
 import { notifyCashMovementCreated } from "../lib/events";
 import ModalPortal from "./ModalPortal";
 
 type Props = {
   onCreated?: () => void;
+  defaultDate?: string;
 };
+
+type DialogProps = {
+  initialMovement?: CashMovement;
+  defaultDate?: string;
+  onClose: () => void;
+  onSaved?: () => void;
+};
+
+function todayISODateLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function formatAmountInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 7);
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-export default function AddCashMovementButton({ onCreated }: Props) {
-  const [open, setOpen] = useState(false);
+export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSaved }: DialogProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [concepto, setConcepto] = useState("");
+  const [concepto, setConcepto] = useState(initialMovement?.concepto ?? "");
+  const [fecha, setFecha] = useState(initialMovement?.fecha ?? defaultDate ?? todayISODateLocal());
   const [conceptos, setConceptos] = useState<string[]>([]);
   const [showConceptOptions, setShowConceptOptions] = useState(false);
   const [saveNewConcept, setSaveNewConcept] = useState(false);
-  const [monto, setMonto] = useState("");
+  const [monto, setMonto] = useState(initialMovement ? formatAmountInput(String(initialMovement.monto)) : "");
 
   const isNewConcept = useMemo(() => {
     const value = concepto.trim().toLocaleLowerCase("es");
@@ -32,13 +45,12 @@ export default function AddCashMovementButton({ onCreated }: Props) {
   }, [concepto, conceptos]);
 
   useEffect(() => {
-    if (!open) return;
     api.listExpenseConcepts().then(setConceptos).catch(() => setConceptos([]));
-  }, [open]);
+  }, []);
 
   const close = () => {
     if (saving) return;
-    setOpen(false);
+    onClose();
     setShowConceptOptions(false);
     setError(null);
   };
@@ -52,6 +64,10 @@ export default function AddCashMovementButton({ onCreated }: Props) {
       setError("Ingresa un concepto.");
       return;
     }
+    if (!fecha) {
+      setError("Ingresa una fecha.");
+      return;
+    }
     const amount = Number(monto.replace(/\D/g, ""));
     if (!Number.isFinite(amount) || amount <= 0 || amount > 9999999) {
       setError("Ingresa un monto valido.");
@@ -63,13 +79,19 @@ export default function AddCashMovementButton({ onCreated }: Props) {
       if (isNewConcept && saveNewConcept) {
         await api.createExpenseConcept(conceptoFinal);
       }
-      await api.createCashMovement({ concepto: conceptoFinal, monto: amount, tipo: "salida" });
+      const payload = { concepto: conceptoFinal, monto: amount, tipo: initialMovement?.tipo ?? "salida", fecha };
+      if (initialMovement) {
+        await api.updateCashMovement(initialMovement.id, payload);
+      } else {
+        await api.createCashMovement(payload);
+      }
       notifyCashMovementCreated();
-      onCreated?.();
+      onSaved?.();
       setConcepto("");
       setSaveNewConcept(false);
       setMonto("");
-      setOpen(false);
+      setFecha(defaultDate ?? todayISODateLocal());
+      onClose();
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
     } finally {
@@ -78,16 +100,6 @@ export default function AddCashMovementButton({ onCreated }: Props) {
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 shadow-sm hover:bg-violet-50 dark:border-violet-900/60 dark:bg-slate-950/40 dark:text-violet-200 dark:hover:bg-violet-950/40"
-      >
-        + Agregar gasto
-      </button>
-
-      {open ? (
         <ModalPortal>
           <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
             <button
@@ -99,7 +111,7 @@ export default function AddCashMovementButton({ onCreated }: Props) {
             />
             <div className="relative z-[110] w-full max-w-lg rounded-t-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-lg">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">Agregar gasto</h2>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">{initialMovement ? "Editar gasto" : "Agregar gasto"}</h2>
                 <button
                   type="button"
                   aria-label="Cerrar"
@@ -169,6 +181,16 @@ export default function AddCashMovementButton({ onCreated }: Props) {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="grid gap-1 text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Fecha</span>
+                    <input
+                      type="date"
+                      value={fecha}
+                      onChange={(e) => setFecha(e.target.value)}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      required
+                    />
+                  </label>
+                  <label className="grid gap-1 text-sm">
                     <span className="font-medium text-slate-700 dark:text-slate-300">Monto</span>
                     <input
                       type="text"
@@ -202,7 +224,23 @@ export default function AddCashMovementButton({ onCreated }: Props) {
             </div>
           </div>
         </ModalPortal>
-      ) : null}
+  );
+}
+
+export default function AddCashMovementButton({ onCreated, defaultDate }: Props) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 shadow-sm hover:bg-violet-50 dark:border-violet-900/60 dark:bg-slate-950/40 dark:text-violet-200 dark:hover:bg-violet-950/40"
+      >
+        + Agregar gasto
+      </button>
+
+      {open ? <CashMovementDialog defaultDate={defaultDate} onClose={() => setOpen(false)} onSaved={onCreated} /> : null}
     </>
   );
 }

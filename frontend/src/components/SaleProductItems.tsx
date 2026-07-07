@@ -148,11 +148,11 @@ export default function SaleProductItems({
             >
               <div className="overflow-hidden">
                 <div
-                  className={`grid grid-cols-1 gap-3 p-3 transition-transform duration-300 ease-in-out sm:grid-cols-2 ${
+                  className={`grid grid-cols-1 gap-3 p-3 transition-transform duration-300 ease-in-out sm:grid-cols-2 xl:grid-cols-4 ${
                     isEditing ? "translate-y-0" : "-translate-y-2"
                   }`}
                 >
-                  <label className="relative block text-sm sm:col-span-2">
+                  <label className="relative block text-sm sm:col-span-2 xl:col-span-4">
                     <span className="font-medium text-slate-700 dark:text-slate-300">Nombre</span>
                     <input
                       type="search"
