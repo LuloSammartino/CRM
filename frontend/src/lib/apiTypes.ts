@@ -178,3 +178,14 @@ export type SaleRow = {
   total: number;
   lines: SaleLineDisplay[];
 };
+
+export type BusinessMetrics = {
+  month: string;
+  sales: { total: number; count: number };
+  expenses: {
+    total: number;
+    count: number;
+    byConcept: { concepto: string; total: number; count: number; movements: { fecha: string; monto: number }[] }[];
+  };
+  balance: number;
+};

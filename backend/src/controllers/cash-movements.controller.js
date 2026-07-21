@@ -94,6 +94,25 @@ export async function createExpenseConcept(req, res, next) {
   }
 }
 
+export async function deleteExpenseConcept(req, res, next) {
+  try {
+    const input = expenseConceptSchema.parse({ nombre: req.params.nombre });
+    const rows = await prisma.$queryRaw`
+      DELETE FROM conceptos_gasto
+      WHERE nombre = ${input.nombre}
+      RETURNING nombre
+    `;
+
+    if (rows.length === 0) return res.status(404).json({ message: "Concepto no encontrado" });
+    res.status(204).end();
+  } catch (err) {
+    if (err?.name === "ZodError") {
+      return res.status(400).json({ error: "ValidationError", details: err.errors });
+    }
+    next(err);
+  }
+}
+
 export async function createCashMovement(req, res, next) {
   try {
     const input = movementSchema.parse(req.body);

@@ -7,6 +7,7 @@ const DashboardPage = lazy(() => import("../pages/DashboardPage"));
 const CustomersPage = lazy(() => import("../pages/CustomersPage"));
 const CashMovementsPage = lazy(() => import("../pages/CashMovementsPage"));
 const InventoryPage = lazy(() => import("../pages/InventoryPage"));
+const MetricsPage = lazy(() => import("../pages/MetricsPage"));
 const ProvidersPage = lazy(() => import("../pages/ProvidersPage"));
 const LoginPage = lazy(() => import("../pages/LoginPage"));
 const SettingsPage = lazy(() => import("../pages/SettingsPage"));
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/" element={<CashMovementsPage />} />
           <Route path="/productos" element={<InventoryPage />} />
           <Route path="/proveedores" element={<ProvidersPage />} />
+          <Route path="/metricas" element={<MetricsPage />} />  
           <Route path="/configuracion" element={<SettingsPage onLogout={() => setAuthStatus("guest")} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

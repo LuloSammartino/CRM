@@ -1,4 +1,5 @@
 import type {
+  BusinessMetrics,
   CashMovement,
   CreateCashMovementPayload,
   CreateCustomerPaymentPayload,
@@ -19,6 +20,7 @@ import type {
 } from "./apiTypes";
 
 export type {
+  BusinessMetrics,
   CashMovement,
   CreateCashMovementPayload,
   CreateCustomerPaymentPayload,
@@ -111,6 +113,12 @@ export const api = {
     }),
   me: () => request<{ user: { id: string; username: string } }>("/api/auth/me"),
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
+  getBusinessMetrics: (month?: string) => {
+    const query = new URLSearchParams();
+    if (month?.trim()) query.set("month", month.trim());
+    const text = query.toString();
+    return request<BusinessMetrics>(`/api/metricas${text ? `?${text}` : ""}`);
+  },
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     request<{ ok: true }>("/api/auth/change-password", {
       method: "POST",
@@ -131,6 +139,8 @@ export const api = {
   listExpenseConcepts: () => request<string[]>("/api/movimientos-caja/conceptos"),
   createExpenseConcept: (nombre: string) =>
     request<string>("/api/movimientos-caja/conceptos", { method: "POST", body: JSON.stringify({ nombre }) }),
+  deleteExpenseConcept: (nombre: string) =>
+    request<void>(`/api/movimientos-caja/conceptos/${encodeURIComponent(nombre)}`, { method: "DELETE" }),
   listCustomers: () => request<Customer[]>("/api/customers"),
   listCustomersPage: (filters?: CustomerFilters & PaginationParams) => {
     const params = new URLSearchParams();

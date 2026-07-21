@@ -25,6 +25,37 @@ function formatAmountInput(value: string) {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function DeleteConceptDialog({ concept, onCancel, onConfirm }: { concept: string; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center rounded-t-lg bg-slate-900/50 p-4 sm:rounded-lg">
+      <div className="w-full max-w-sm rounded-lg bg-white shadow-xl dark:bg-slate-900">
+        <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Eliminar concepto</h3>
+        </div>
+        <div className="px-5 py-4 text-sm text-slate-700 dark:text-slate-300">
+          Desea eliminar el concepto {concept} para futuros gastos ?
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-700">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSaved }: DialogProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +64,7 @@ export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSa
   const [conceptos, setConceptos] = useState<string[]>([]);
   const [showConceptOptions, setShowConceptOptions] = useState(false);
   const [saveNewConcept, setSaveNewConcept] = useState(false);
+  const [conceptToDelete, setConceptToDelete] = useState<string | null>(null);
   const [monto, setMonto] = useState(initialMovement ? formatAmountInput(String(initialMovement.monto)) : "");
 
   const isNewConcept = useMemo(() => {
@@ -99,6 +131,17 @@ export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSa
     }
   }
 
+  async function deleteConcept() {
+    if (!conceptToDelete) return;
+    try {
+      await api.deleteExpenseConcept(conceptToDelete);
+      setConceptos((current) => current.filter((concept) => concept !== conceptToDelete));
+      setConceptToDelete(null);
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    }
+  }
+
   return (
         <ModalPortal>
           <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
@@ -150,23 +193,34 @@ export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSa
                     {showConceptOptions && filteredConcepts.length > 0 ? (
                       <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-40 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
                         {filteredConcepts.map((item) => (
-                          <button
-                            key={item}
-                            type="button"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => {
-                              setConcepto(item);
-                              setShowConceptOptions(false);
-                            }}
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-violet-50 hover:text-violet-900 dark:text-slate-100 dark:hover:bg-violet-950/40 dark:hover:text-violet-100"
-                          >
-                            {item}
-                          </button>
+                          <div key={item} className="flex items-center hover:bg-violet-50 dark:hover:bg-violet-950/40">
+                            <button
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                setConcepto(item);
+                                setShowConceptOptions(false);
+                              }}
+                              className="min-w-0 flex-1 px-3 py-2 text-left text-sm text-slate-800 dark:text-slate-100"
+                            >
+                              {item}
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Eliminar concepto ${item}`}
+                              title="Eliminar concepto"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => setConceptToDelete(item)}
+                              className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-red-600 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-950/50"
+                            >
+                              &times;
+                            </button>
+                          </div>
                         ))}
                       </div>
                     ) : null}
                   </div>
-                  {isNewConcept ? (
+                  {!initialMovement && isNewConcept ? (
                     <label className="mt-1 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100">
                       <input
                         type="checkbox"
@@ -221,6 +275,7 @@ export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSa
                   </button>
                 </div>
               </form>
+              {conceptToDelete ? <DeleteConceptDialog concept={conceptToDelete} onCancel={() => setConceptToDelete(null)} onConfirm={deleteConcept} /> : null}
             </div>
           </div>
         </ModalPortal>
