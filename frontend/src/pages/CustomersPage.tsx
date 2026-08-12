@@ -30,6 +30,7 @@ export default function CustomersPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [cuitCopiedAt, setCuitCopiedAt] = useState<{ x: number; y: number } | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showCurrentAccount, setShowCurrentAccount] = useState(false);
   const [currentAccountDebtors, setCurrentAccountDebtors] = useState<CurrentAccountDebtor[]>([]);
@@ -170,7 +171,21 @@ export default function CustomersPage() {
         header: "CUIT",
         className: "w-[12%] px-3",
         render: (c) => (
-          <span className="block truncate font-bold" title={c.cuit ?? ""}>
+          <span
+            className="block cursor-pointer select-none truncate font-bold"
+            title={c.cuit ? "Doble click para copiar sin guiones" : ""}
+            onDoubleClick={(event) => {
+              if (!c.cuit) return;
+              const { clientX: x, clientY: y } = event;
+              navigator.clipboard
+                .writeText(c.cuit.replace(/\D/g, ""))
+                .then(() => {
+                  setCuitCopiedAt({ x, y });
+                  window.setTimeout(() => setCuitCopiedAt(null), 900);
+                })
+                .catch(() => setError("No se pudo copiar el CUIT."));
+            }}
+          >
             {formatCuit(c.cuit)}
           </span>
         )
@@ -413,6 +428,14 @@ export default function CustomersPage() {
       ) : null}
 
       {successMessage ? <SuccessToast message={successMessage} onClose={() => setSuccessMessage(null)} /> : null}
+      {cuitCopiedAt ? (
+        <span
+          className="cuit-copy-feedback pointer-events-none fixed z-[200] whitespace-nowrap text-sm font-semibold text-emerald-600 dark:text-emerald-400"
+          style={{ left: cuitCopiedAt.x, top: cuitCopiedAt.y - 24 }}
+        >
+          CUIT Copiado!
+        </span>
+      ) : null}
     </div>
   );
 }
