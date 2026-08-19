@@ -33,6 +33,7 @@ function createSaleItem(): SaleItemForm {
     productId: "",
     productSearch: "",
     selectedProductName: "",
+    saleProductName: "",
     qty: "1",
     unitPrice: 0,
     priceMode: "precio1"
@@ -47,13 +48,14 @@ function createSaleItemFromLine(line: SaleRow["lines"][number]): SaleItemForm {
     product: productId
       ? {
           id: Number(productId),
-          nombre: line.productName,
+          nombre: line.catalogProductName ?? line.productName,
           precio1: String(unitPrice)
         }
       : null,
     productId: productId ?? "",
-    productSearch: line.productName,
-    selectedProductName: line.productName,
+    productSearch: line.catalogProductName ?? line.productName,
+    selectedProductName: line.catalogProductName ?? line.productName,
+    saleProductName: line.productName,
     qty: String(line.qty),
     unitPrice,
     priceMode: "manual"
@@ -125,7 +127,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
         const qty = parseQty(item.qty);
         const unitPrice = item.unitPrice;
         return {
-          productName: item.selectedProductName || item.productSearch,
+          productName: item.saleProductName,
           sku: "",
           qty,
           unitPrice,
@@ -208,6 +210,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
       productId: String(product.id),
       productSearch: product.nombre,
       selectedProductName: product.nombre,
+      saleProductName: product.nombre,
       unitPrice: price,
       priceMode: "precio1"
     });
@@ -305,6 +308,12 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
       return false;
     }
 
+    const invalidNameIndex = saleItems.findIndex((item) => !item.saleProductName.trim());
+    if (invalidNameIndex >= 0) {
+      setError(`Ingresa el nombre para la linea ${invalidNameIndex + 1}.`);
+      return false;
+    }
+
     const invalidPriceIndex = saleItems.findIndex((item) => !Number.isFinite(item.unitPrice) || item.unitPrice < 0);
     if (invalidPriceIndex >= 0) {
       setError(`El precio no es valido en la linea ${invalidPriceIndex + 1}.`);
@@ -338,6 +347,7 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
         detalle: isCuentaCorriente ? detalle.trim() || null : null,
         items: saleItems.map((item) => ({
           productId: item.productId,
+          productName: item.saleProductName.trim(),
           qty: parseQty(item.qty),
           unitPrice: item.unitPrice
         }))
@@ -526,14 +536,14 @@ export default function AddSaleDialog({ onClose, onCreated, initialSale }: AddSa
 
               <button
                 type="button"
-                className="w-full rounded-md border border-dashed border-violet-300 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-800 transition hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/30 dark:text-violet-200 dark:hover:bg-violet-950/50"
+                className="w-full rounded-md px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40"
                 onClick={addSaleItem}
               >
                 + Agregar otro producto
               </button>
 
               <div className="flex items-center justify-between rounded-lg border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-900/50 dark:bg-emerald-950/40">
-                <span className="font-medium text-emerald-800 dark:text-emerald-200">Total</span>
+                <span className=" text-emerald dark:text-emerald-200">Total</span>
                 <span className="text-lg font-bold tabular-nums text-emerald-900 dark:text-emerald-100">${saleTotal.toFixed(2)}</span>
               </div>
 

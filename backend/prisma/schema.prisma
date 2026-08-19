@@ -80,6 +80,7 @@ model VentaDetalle {
   id             Int     @id @default(autoincrement())
   ventaId        Int     @map("venta_id")
   productoId     Int     @map("producto_id")
+  nombreProducto String  @map("nombre_producto") @db.VarChar(100)
   cantidad       Int
   precioUnitario Decimal @map("precio_unitario") @db.Decimal(9, 2)
   subtotal       Decimal @db.Decimal(9, 2)

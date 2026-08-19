@@ -9,6 +9,7 @@ export type SaleItemForm = {
   productId: string;
   productSearch: string;
   selectedProductName: string;
+  saleProductName: string;
   qty: string;
   unitPrice: number;
   priceMode: PriceMode;
@@ -78,15 +79,14 @@ export default function SaleProductItems({
       {saleItems.map((item, index) => {
         const parsedItemQty = parseQty(item.qty);
         const itemTotal = Math.max(0, parsedItemQty) * Math.max(0, item.unitPrice);
-        const showProductResults =
-          activeProductItemId === item.id && item.productSearch.trim() !== item.selectedProductName.trim();
+        const showProductResults = activeProductItemId === item.id && !item.productId;
         const selectedPricePercent = pricePercent(item.product, item.unitPrice);
         const isEditing = editingSaleItemId === item.id;
 
         return (
           <div
             key={item.id}
-            className={`overflow-hidden rounded-lg border bg-slate-50/70 transition-[box-shadow,border-color,background-color] duration-200 dark:bg-slate-800/40 ${
+            className={`${isEditing ? "overflow-visible" : "overflow-hidden"} rounded-lg border bg-slate-50/70 transition-[box-shadow,border-color,background-color] duration-200 dark:bg-slate-800/40 ${
               isEditing
                 ? "border-violet-200 bg-white shadow-md shadow-violet-900/10 ring-1 ring-violet-100 dark:border-violet-700 dark:bg-slate-900/70 dark:shadow-black/30 dark:ring-violet-900/40"
                 : "border-slate-200 shadow-sm dark:border-slate-700"
@@ -102,7 +102,7 @@ export default function SaleProductItems({
                   #{index + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-800 dark:text-slate-100">
-                  {item.selectedProductName || item.productSearch || `Producto ${index + 1}`}
+                  {item.saleProductName || item.selectedProductName || item.productSearch || `Producto ${index + 1}`}
                 </span>
               </button>
               <div className="flex shrink-0 items-center gap-2">
@@ -146,24 +146,53 @@ export default function SaleProductItems({
                 isEditing ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
               }`}
             >
-              <div className="overflow-hidden">
+              <div className={isEditing ? "overflow-visible" : "overflow-hidden"}>
                 <div
                   className={`grid grid-cols-1 gap-3 p-3 transition-transform duration-300 ease-in-out sm:grid-cols-2 xl:grid-cols-4 ${
                     isEditing ? "translate-y-0" : "-translate-y-2"
                   }`}
                 >
                   <label className="relative block text-sm sm:col-span-2 xl:col-span-4">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Nombre</span>
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">Nombre</span>
+                      {item.productId ? (
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-violet-700 hover:text-violet-900 dark:text-violet-300 dark:hover:text-violet-100"
+                          onClick={() => {
+                            setActiveProductItemId(item.id);
+                            setProductLookupQuery("");
+                            updateSaleItem(item.id, {
+                              product: null,
+                              productId: "",
+                              productSearch: "",
+                              selectedProductName: "",
+                              saleProductName: "",
+                              unitPrice: 0,
+                              priceMode: "precio1"
+                            });
+                          }}
+                        >
+                          Cambiar producto
+                        </button>
+                      ) : null}
+                    </span>
                     <input
                       type="search"
+                      autoFocus={index === 0}
+                      maxLength={100}
                       className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-violet-400 dark:focus:ring-violet-900/50"
-                      value={item.productSearch}
+                      value={item.productId ? item.saleProductName : item.productSearch}
                       onFocus={() => {
                         setActiveProductItemId(item.id);
-                        setProductLookupQuery(item.productSearch);
+                        if (!item.productId) setProductLookupQuery(item.productSearch);
                       }}
                       onChange={(e) => {
                         const value = e.target.value;
+                        if (item.productId) {
+                          updateSaleItem(item.id, { saleProductName: value });
+                          return;
+                        }
                         setActiveProductItemId(item.id);
                         setProductLookupQuery(value);
                         updateSaleItem(item.id, {
@@ -171,6 +200,7 @@ export default function SaleProductItems({
                           productId: "",
                           productSearch: value,
                           selectedProductName: "",
+                          saleProductName: "",
                           unitPrice: 0,
                           priceMode: "precio1"
                         });

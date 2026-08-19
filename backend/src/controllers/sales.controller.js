@@ -64,7 +64,8 @@ function cleanSale(sale) {
     lines: (sale.detalles ?? []).map((detail) => ({
       id: String(detail.id),
       productId: String(detail.productoId),
-      productName: detail.producto?.nombre?.trim() || "Producto",
+      productName: detail.nombreProducto?.trim() || detail.producto?.nombre?.trim() || "Producto",
+      catalogProductName: detail.producto?.nombre?.trim() || "Producto",
       sku: String(detail.productoId),
       qty: detail.cantidad,
       unitPrice: Number(detail.precioUnitario),
@@ -79,7 +80,8 @@ const saleItemSchema = z.object({
   qty: z.coerce.number().int().positive().optional(),
   cantidad: z.coerce.number().int().positive().optional(),
   unitPrice: z.coerce.number().nonnegative().optional(),
-  precioUnitario: z.coerce.number().nonnegative().optional()
+  precioUnitario: z.coerce.number().nonnegative().optional(),
+  productName: z.string().trim().min(1).max(100).optional()
 });
 
 const createSaleSchema = z.object({
@@ -103,6 +105,7 @@ function normalizeSaleItem(item) {
   const productoId = item.productoId ?? item.productId;
   const cantidad = item.cantidad ?? item.qty;
   const precioUnitario = item.precioUnitario ?? item.unitPrice;
+  const nombreProducto = item.productName;
 
   if (!productoId || !cantidad || precioUnitario == null) {
     return null;
@@ -110,6 +113,7 @@ function normalizeSaleItem(item) {
 
   return {
     productoId,
+    nombreProducto,
     cantidad,
     precioUnitario,
     subtotal: cantidad * precioUnitario
@@ -154,14 +158,19 @@ export async function listSales(req, res, next) {
         ? {
             detalles: {
               some: {
-                producto: {
-                  is: {
-                    OR: [
-                      { nombre: { contains: productSearch, mode: "insensitive" } },
-                      ...(Number.isInteger(productIdSearch) && productIdSearch > 0 ? [{ id: productIdSearch }] : [])
-                    ]
+                OR: [
+                  { nombreProducto: { contains: productSearch, mode: "insensitive" } },
+                  {
+                    producto: {
+                      is: {
+                        OR: [
+                          { nombre: { contains: productSearch, mode: "insensitive" } },
+                          ...(Number.isInteger(productIdSearch) && productIdSearch > 0 ? [{ id: productIdSearch }] : [])
+                        ]
+                      }
+                    }
                   }
-                }
+                ]
               }
             }
           }
@@ -243,7 +252,7 @@ export async function createSale(req, res, next) {
 
       const products = await tx.producto.findMany({
         where: { id: { in: productIds }, isActive: true },
-        select: { id: true }
+        select: { id: true, nombre: true }
       });
       if (products.length !== productIds.length) {
         const found = new Set(products.map((product) => product.id));
@@ -262,6 +271,7 @@ export async function createSale(req, res, next) {
           detalles: {
             create: items.map((item) => ({
               productoId: item.productoId,
+              nombreProducto: item.nombreProducto || products.find((product) => product.id === item.productoId).nombre,
               cantidad: item.cantidad,
               precioUnitario: item.precioUnitario,
               subtotal: item.subtotal
@@ -352,7 +362,7 @@ export async function updateSale(req, res, next) {
 
       const products = await tx.producto.findMany({
         where: { id: { in: productIds }, isActive: true },
-        select: { id: true }
+        select: { id: true, nombre: true }
       });
       if (products.length !== productIds.length) {
         const found = new Set(products.map((product) => product.id));
@@ -373,6 +383,7 @@ export async function updateSale(req, res, next) {
           detalles: {
             create: items.map((item) => ({
               productoId: item.productoId,
+              nombreProducto: item.nombreProducto || products.find((product) => product.id === item.productoId).nombre,
               cantidad: item.cantidad,
               precioUnitario: item.precioUnitario,
               subtotal: item.subtotal

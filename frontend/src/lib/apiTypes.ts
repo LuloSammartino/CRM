@@ -127,6 +127,7 @@ export type ProviderFilters = {
 
 export type SaleLineInput = {
   productId: string;
+  productName: string;
   qty: number;
   unitPrice: number;
 };
@@ -159,6 +160,7 @@ export type SaleLineDisplay = {
   id?: string;
   productId?: string;
   productName: string;
+  catalogProductName?: string;
   sku: string;
   qty: number;
   unitPrice: number;
