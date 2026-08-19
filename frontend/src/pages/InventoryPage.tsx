@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import AddProductDialog from "../components/AddProductDialog";
 import BulkUpdateProductsDialog from "../components/BulkUpdateProductsDialog";
 import DataTable, { type Column } from "../components/DataTable";
@@ -43,6 +44,79 @@ function fmtMoney(value?: string | null) {
   return Number.isNaN(amount) ? value : `$${amount.toFixed(2)}`;
 }
 
+type PriceTooltipState = { id: string; x: number; y: number } | null;
+
+function priceWithTaxTooltip(
+  value: string | null | undefined,
+  id: string,
+  openTooltip: PriceTooltipState,
+  setOpenTooltip: (tooltip: PriceTooltipState) => void
+) {
+  if (!value) return "-";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return value;
+
+  return (
+    <PriceWithTaxTooltip
+      value={value}
+      withoutTax={amount / 1.21}
+      id={id}
+      openTooltip={openTooltip}
+      setOpenTooltip={setOpenTooltip}
+    />
+  );
+}
+
+function PriceWithTaxTooltip({
+  value,
+  withoutTax,
+  id,
+  openTooltip,
+  setOpenTooltip
+}: {
+  value: string;
+  withoutTax: number;
+  id: string;
+  openTooltip: PriceTooltipState;
+  setOpenTooltip: (tooltip: PriceTooltipState) => void;
+}) {
+  const isOpen = openTooltip?.id === id;
+
+  return (
+    <>
+      <button
+        type="button"
+        data-price-tooltip
+        className="rounded-md border border-transparent px-2 py-1 tabular-nums transition hover:border-amber-400 hover:bg-amber-50 hover:ring-2 hover:ring-amber-200 focus:border-amber-400 focus:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-300 dark:hover:border-amber-400 dark:hover:bg-amber-950/30 dark:hover:ring-amber-800 dark:focus:border-amber-400 dark:focus:bg-amber-950/30 dark:focus:ring-amber-700"
+        aria-expanded={isOpen}
+        onClick={(event) => {
+          if (isOpen) {
+            setOpenTooltip(null);
+            return;
+          }
+          const rect = event.currentTarget.getBoundingClientRect();
+          setOpenTooltip({ id, x: rect.right + 10, y: rect.bottom + 6 });
+        }}
+      >
+        {fmtMoney(value)}
+      </button>
+      {isOpen
+        ? createPortal(
+            <span
+              role="tooltip"
+              data-price-tooltip
+              className="fixed z-[200] cursor-text select-text whitespace-nowrap rounded-lg border-2 border-orange-400 bg-amber-100 px-4 py-2 text-base font-bold text-orange-950 shadow-xl dark:border-orange-500 dark:bg-amber-200 dark:text-orange-950"
+              style={{ left: openTooltip.x, top: openTooltip.y }}
+            >
+              Sin IVA (21%): ${withoutTax.toFixed(2)}
+            </span>,
+            document.body
+          )
+        : null}
+    </>
+  );
+}
+
 export default function InventoryPage() {
   const [rows, setRows] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
@@ -58,6 +132,7 @@ export default function InventoryPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [openPriceTooltip, setOpenPriceTooltip] = useState<PriceTooltipState>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showExport, setShowExport] = useState(false);
@@ -160,6 +235,18 @@ export default function InventoryPage() {
     return () => window.clearTimeout(timeoutId);
   }, [successMessage]);
 
+  useEffect(() => {
+    if (!openPriceTooltip) return undefined;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest("[data-price-tooltip]")) return;
+      setOpenPriceTooltip(null);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [openPriceTooltip]);
+
   const closeDeleteDialog = () => {
     setDeletingProduct(null);
     setDeleting(false);
@@ -185,9 +272,9 @@ export default function InventoryPage() {
   const columns: Column<Product>[] = useMemo(
     () => [
       { key: "nombre", header: "Nombre", render: (p) => <span className="font-medium">{p.nombre}</span> },
-      { key: "precio1", header: "Precio 1", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.precio1) },
-      { key: "precio2", header: "Precio 2", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.precio2 ?? null) },
-      { key: "precio3", header: "Precio 3", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.precio3 ?? null) },
+      { key: "precio1", header: "Precio 1", className: "whitespace-nowrap text-right", render: (p) => priceWithTaxTooltip(p.precio1, `${p.id}-precio1`, openPriceTooltip, setOpenPriceTooltip) },
+      { key: "precio2", header: "Precio 2", className: "whitespace-nowrap text-right", render: (p) => priceWithTaxTooltip(p.precio2, `${p.id}-precio2`, openPriceTooltip, setOpenPriceTooltip) },
+      { key: "precio3", header: "Precio 3", className: "whitespace-nowrap text-right", render: (p) => priceWithTaxTooltip(p.precio3, `${p.id}-precio3`, openPriceTooltip, setOpenPriceTooltip) },
       { key: "costo", header: "Costo", className: "whitespace-nowrap text-right", render: (p) => fmtMoney(p.costo ?? null) },
       { key: "rubro", header: "Rubro", render: (p) => p.rubro ?? "-" },
       {
@@ -222,7 +309,7 @@ export default function InventoryPage() {
         )
       }
     ],
-    []
+    [openPriceTooltip]
   );
 
   const resultLabel = loading
