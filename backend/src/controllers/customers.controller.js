@@ -33,9 +33,10 @@ function parsePagination(query) {
 export async function listCustomers(req, res, next) {
   try {
     const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
-    const phone = typeof req.query.phone === "string" ? req.query.phone.trim() : "";
+    const tipo = typeof req.query.tipo === "string" ? req.query.tipo.trim() : "";
     const cuit = typeof req.query.cuit === "string" ? req.query.cuit.trim() : "";
     const iva = typeof req.query.iva === "string" ? req.query.iva.trim() : "";
+    const filterInactiveCuits = req.query.filterInactiveCuits === "true";
     const pagination = parsePagination(req.query);
     const andFilters = [{ isActive: true }];
 
@@ -43,8 +44,8 @@ export async function listCustomers(req, res, next) {
       andFilters.push({ nombre: { contains: query, mode: "insensitive" } });
     }
 
-    if (phone) {
-      andFilters.push({ telefono: { contains: phone, mode: "insensitive" } });
+    if (tipo) {
+      andFilters.push({ tipo: { contains: tipo, mode: "insensitive" } });
     }
 
     if (cuit) {
@@ -53,6 +54,10 @@ export async function listCustomers(req, res, next) {
 
     if (iva) {
       andFilters.push({ iva: { contains: iva, mode: "insensitive" } });
+    }
+
+    if (filterInactiveCuits) {
+      andFilters.push({ cuit: { not: "11111111113" } });
     }
 
     const where = { AND: andFilters };

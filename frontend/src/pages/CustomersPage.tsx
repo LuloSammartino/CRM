@@ -17,11 +17,12 @@ const PAGE_SIZE = 100;
 export default function CustomersPage() {
   const [rows, setRows] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
-  const [phoneSearch, setPhoneSearch] = useState("");
+  const [tipoSearch, setTipoSearch] = useState("");
   const [cuitSearch, setCuitSearch] = useState("");
   const [ivaFilter, setIvaFilter] = useState("");
+  const [filterInactiveCuits, setFilterInactiveCuits] = useState(true);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [debouncedPhoneSearch, setDebouncedPhoneSearch] = useState("");
+  const [debouncedTipoSearch, setDebouncedTipoSearch] = useState("");
   const [debouncedCuitSearch, setDebouncedCuitSearch] = useState("");
   const [debouncedIvaFilter, setDebouncedIvaFilter] = useState("");
   const [page, setPage] = useState(0);
@@ -40,7 +41,7 @@ export default function CustomersPage() {
   const load = useCallback(
     (
       query = debouncedSearch,
-      phone = debouncedPhoneSearch,
+      tipo = debouncedTipoSearch,
       cuit = debouncedCuitSearch,
       iva = debouncedIvaFilter,
       pageIndex = page
@@ -48,7 +49,7 @@ export default function CustomersPage() {
       setLoading(true);
       setError(null);
       api
-        .listCustomersPage({ q: query, phone, cuit, iva, limit: PAGE_SIZE, offset: pageIndex * PAGE_SIZE })
+        .listCustomersPage({ q: query, tipo, cuit, iva, filterInactiveCuits, limit: PAGE_SIZE, offset: pageIndex * PAGE_SIZE })
         .then((result) => {
           setRows(result.rows);
           setTotalRows(result.total);
@@ -56,7 +57,7 @@ export default function CustomersPage() {
         .catch((e) => setError(String((e as Error)?.message ?? e)))
         .finally(() => setLoading(false));
     },
-    [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, page]
+    [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, filterInactiveCuits, page]
   );
 
   const refreshCurrentAccountDebtors = useCallback(() => {
@@ -70,30 +71,30 @@ export default function CustomersPage() {
     const timeoutId = window.setTimeout(() => {
       setPage(0);
       setDebouncedSearch(search.trim());
-      setDebouncedPhoneSearch(phoneSearch.trim());
+      setDebouncedTipoSearch(tipoSearch.trim());
       setDebouncedCuitSearch(cuitSearch.trim());
       setDebouncedIvaFilter(ivaFilter.trim());
     }, 300);
 
     return () => window.clearTimeout(timeoutId);
-  }, [cuitSearch, ivaFilter, phoneSearch, search]);
+  }, [cuitSearch, ivaFilter, search, tipoSearch]);
 
   useEffect(() => {
-    load(debouncedSearch, debouncedPhoneSearch, debouncedCuitSearch, debouncedIvaFilter, page);
-  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
+    load(debouncedSearch, debouncedTipoSearch, debouncedCuitSearch, debouncedIvaFilter, page);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, load, page]);
 
   useEffect(() => {
     const onSale = () => {
-      load(debouncedSearch, debouncedPhoneSearch, debouncedCuitSearch, debouncedIvaFilter, page);
+      load(debouncedSearch, debouncedTipoSearch, debouncedCuitSearch, debouncedIvaFilter, page);
       refreshCurrentAccountDebtors();
     };
     window.addEventListener(CRM_SALE_CREATED_EVENT, onSale);
     return () => window.removeEventListener(CRM_SALE_CREATED_EVENT, onSale);
-  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page, refreshCurrentAccountDebtors]);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, load, page, refreshCurrentAccountDebtors]);
 
   const refreshCustomers = useCallback(() => {
-    load(debouncedSearch, debouncedPhoneSearch, debouncedCuitSearch, debouncedIvaFilter, page);
-  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedPhoneSearch, debouncedSearch, load, page]);
+    load(debouncedSearch, debouncedTipoSearch, debouncedCuitSearch, debouncedIvaFilter, page);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, load, page]);
 
   useEffect(() => {
     refreshCurrentAccountDebtors();
@@ -234,7 +235,7 @@ export default function CustomersPage() {
     []
   );
 
-  const hasActiveFilters = Boolean(debouncedSearch || debouncedPhoneSearch || debouncedCuitSearch || debouncedIvaFilter);
+  const hasActiveFilters = Boolean(debouncedSearch || debouncedTipoSearch || debouncedCuitSearch || debouncedIvaFilter);
   const resultLabel = loading
     ? "Cargando clientes..."
     : `${totalRows} cliente${totalRows === 1 ? "" : "s"}${hasActiveFilters ? " encontrados" : ""}`;
@@ -274,12 +275,12 @@ export default function CustomersPage() {
         </label>
 
         <label className="text-sm">
-          <span className="font-medium text-slate-700 dark:text-slate-300">Buscar telefono</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">Buscar tipo</span>
           <input
             type="search"
-            value={phoneSearch}
-            onChange={(e) => setPhoneSearch(e.target.value)}
-            placeholder="Numero de telefono..."
+            value={tipoSearch}
+            onChange={(e) => setTipoSearch(e.target.value)}
+            placeholder="Tipo de cliente..."
             className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-900/50"
           />
         </label>
@@ -316,17 +317,30 @@ export default function CustomersPage() {
             type="button"
             onClick={() => {
               setSearch("");
-              setPhoneSearch("");
+              setTipoSearch("");
               setCuitSearch("");
               setIvaFilter("");
             }}
-            disabled={!search.trim() && !phoneSearch.trim() && !cuitSearch.trim() && !ivaFilter.trim()}
+            disabled={!search.trim() && !tipoSearch.trim() && !cuitSearch.trim() && !ivaFilter.trim()}
             className="h-[38px] rounded-md border border-sky-200 bg-white px-3 text-sm font-semibold text-sky-800 shadow-sm hover:bg-sky-50 disabled:opacity-50 dark:border-sky-900/60 dark:bg-slate-950/40 dark:text-sky-200 dark:hover:bg-sky-950/40"
           >
             Limpiar
           </button>
         </div>
       </div>
+
+      <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+        <input
+          type="checkbox"
+          checked={filterInactiveCuits}
+          onChange={(e) => {
+            setPage(0);
+            setFilterInactiveCuits(e.target.checked);
+          }}
+          className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+        />
+        Filtrar CUITs inactivos
+      </label>
 
       <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">
         {resultLabel}
