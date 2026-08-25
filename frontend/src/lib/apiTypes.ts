@@ -4,7 +4,7 @@ export type Customer = {
   email?: string | null;
   phone?: string | null;
   direccion?: string | null;
-  direccion1?: string | null;
+  telefono2?: string | null;
   direccion2?: string | null;
   cuit?: string | null;
   iva?: string | null;
@@ -175,7 +175,6 @@ export type SaleRow = {
   customerId: string | null;
   customerName: string;
   customerDireccion?: string | null;
-  customerDireccion1?: string | null;
   customerDireccion2?: string | null;
   metodoPago?: string;
   total: number;

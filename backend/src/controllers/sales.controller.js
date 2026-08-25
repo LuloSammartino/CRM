@@ -56,7 +56,6 @@ function cleanSale(sale) {
     customerId: sale.clienteId == null ? null : String(sale.clienteId),
     customerName: sale.cliente?.nombre?.trim() || "Consumidor Final",
     customerDireccion: sale.cliente?.direccion?.trim() || null,
-    customerDireccion1: sale.cliente?.direccion1?.trim() || null,
     customerDireccion2: sale.cliente?.direccion2?.trim() || null,
     montoTotal: Number(sale.montoTotal),
     total: Number(sale.montoTotal),

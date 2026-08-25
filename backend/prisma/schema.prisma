@@ -30,7 +30,7 @@ model Cliente {
   id          Int     @id @default(autoincrement())
   nombre      String  @unique @db.VarChar(50)
   direccion   String? @db.VarChar(50)
-  direccion1  String? @map("direccion_1") @db.VarChar(50)
+  telefono2   String? @map("telefono_2") @db.VarChar(50)
   direccion2  String? @map("direccion_2") @db.VarChar(50)
   telefono    String? @db.VarChar(30)
   email       String? @map("e_mail") @db.VarChar(50)

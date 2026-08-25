@@ -40,7 +40,6 @@ export default function SaleDetailDialog({
   const [manualAddress, setManualAddress] = useState("");
   const addresses = [
     { label: "Direccion", value: sale.customerDireccion },
-    { label: "Direccion1", value: sale.customerDireccion1 },
     { label: "Direccion2", value: sale.customerDireccion2 }
   ].filter((item) => item.value?.trim());
 
