@@ -6,9 +6,9 @@ import DataTable, { type Column } from "../components/DataTable";
 import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
 import { api, type CashMovement, type SaleRow } from "../lib/api";
+import { formatArgentineDate } from "../lib/date";
 import { CRM_CASH_MOVEMENT_CREATED_EVENT, CRM_SALE_CREATED_EVENT } from "../lib/events";
 
-const DATE_FORMAT = new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const PAGE_SIZE = 1000;
 
 type CashRow = {
@@ -29,7 +29,7 @@ function todayISODateLocal() {
 }
 
 function fmtDate(value: string) {
-  return DATE_FORMAT.format(new Date(`${value}T12:00:00`));
+  return formatArgentineDate(value);
 }
 
 function fmtMoney(value: number) {
@@ -188,6 +188,7 @@ export default function CashMovementsPage() {
             <span className="sr-only">Fecha de caja</span>
             <input
               type="date"
+              lang="es-AR"
               value={date}
               onChange={(e) => setDate(e.target.value || todayISODateLocal())}
               className="h-[38px] rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"

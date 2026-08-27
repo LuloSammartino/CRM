@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AddCustomerDialog from "../components/AddCustomerDialog";
-import CurrentAccountDebtorsDialog from "../components/CurrentAccountDebtorsDialog";
 import DataTable, { type Column } from "../components/DataTable";
 import EditCustomerDialog from "../components/EditCustomerDialog";
 import ModalPortal from "../components/ModalPortal";
@@ -8,7 +7,7 @@ import PageHeader from "../components/PageHeader";
 import PaginationControls from "../components/PaginationControls";
 import SuccessToast from "../components/SuccessToast";
 import { ivaOptions } from "../components/customerFormUtils";
-import { api, type CurrentAccountDebtor, type Customer } from "../lib/api";
+import { api, type Customer } from "../lib/api";
 import { formatCuit } from "../lib/cuit";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
@@ -33,8 +32,6 @@ export default function CustomersPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [cuitCopiedAt, setCuitCopiedAt] = useState<{ x: number; y: number } | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showCurrentAccount, setShowCurrentAccount] = useState(false);
-  const [currentAccountDebtors, setCurrentAccountDebtors] = useState<CurrentAccountDebtor[]>([]);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
@@ -60,13 +57,6 @@ export default function CustomersPage() {
     [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, filterInactiveCuits, page]
   );
 
-  const refreshCurrentAccountDebtors = useCallback(() => {
-    api
-      .listCurrentAccountDebtors()
-      .then(setCurrentAccountDebtors)
-      .catch(() => setCurrentAccountDebtors([]));
-  }, []);
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setPage(0);
@@ -86,19 +76,14 @@ export default function CustomersPage() {
   useEffect(() => {
     const onSale = () => {
       load(debouncedSearch, debouncedTipoSearch, debouncedCuitSearch, debouncedIvaFilter, page);
-      refreshCurrentAccountDebtors();
     };
     window.addEventListener(CRM_SALE_CREATED_EVENT, onSale);
     return () => window.removeEventListener(CRM_SALE_CREATED_EVENT, onSale);
-  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, load, page, refreshCurrentAccountDebtors]);
+  }, [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, load, page]);
 
   const refreshCustomers = useCallback(() => {
     load(debouncedSearch, debouncedTipoSearch, debouncedCuitSearch, debouncedIvaFilter, page);
   }, [debouncedCuitSearch, debouncedIvaFilter, debouncedSearch, debouncedTipoSearch, load, page]);
-
-  useEffect(() => {
-    refreshCurrentAccountDebtors();
-  }, [refreshCurrentAccountDebtors]);
 
   useEffect(() => {
     if (!successMessage) return undefined;
@@ -245,13 +230,6 @@ export default function CustomersPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader title="Clientes" tone="sky" />
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setShowCurrentAccount(true)}
-            className="inline-flex  items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-900 shadow-sm hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100 dark:hover:bg-emerald-950/50"
-          >
-          Cuenta corriente
-          </button>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
@@ -430,14 +408,6 @@ export default function CustomersPage() {
             refreshCustomers();
             setSuccessMessage("Cliente modificado con exito.");
           }}
-        />
-      ) : null}
-
-      {showCurrentAccount ? (
-        <CurrentAccountDebtorsDialog
-          initialRows={currentAccountDebtors}
-          onClose={() => setShowCurrentAccount(false)}
-          onRowsChange={setCurrentAccountDebtors}
         />
       ) : null}
 

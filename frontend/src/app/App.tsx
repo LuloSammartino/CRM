@@ -5,6 +5,7 @@ import { AUTH_LOGOUT_EVENT, api, clearAuthToken, getAuthToken } from "../lib/api
 
 const DashboardPage = lazy(() => import("../pages/DashboardPage"));
 const CustomersPage = lazy(() => import("../pages/CustomersPage"));
+const CurrentAccountPage = lazy(() => import("../pages/CurrentAccountPage"));
 const CashMovementsPage = lazy(() => import("../pages/CashMovementsPage"));
 const InventoryPage = lazy(() => import("../pages/InventoryPage"));
 const MetricsPage = lazy(() => import("../pages/MetricsPage"));
@@ -52,6 +53,7 @@ export default function App() {
         <Route element={isLoggedIn ? <AdminLayout /> : <Navigate to="/login" replace />}>
           <Route path="/ventas" element={<DashboardPage />} />
           <Route path="/clientes" element={<CustomersPage />} />
+          <Route path="/cuenta-corriente" element={<CurrentAccountPage />} />
           <Route path="/" element={<CashMovementsPage />} />
           <Route path="/productos" element={<InventoryPage />} />
           <Route path="/proveedores" element={<ProvidersPage />} />

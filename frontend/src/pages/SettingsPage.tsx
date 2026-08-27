@@ -77,7 +77,7 @@ export default function SettingsPage({ onLogout }: Props) {
 
   return (
     <div className="mx-auto max-w-md space-y-4">
-      <h1 className="text-xl font-bold text-slate-900 dark:text-white">Configuracion</h1>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-white">Configuración</h1>
       <form onSubmit={submit} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         {passwordField("Contrasena actual", currentPassword, setCurrentPassword, showCurrentPassword, setShowCurrentPassword)}
         {passwordField("Nueva contrasena", newPassword, setNewPassword, showNewPassword, setShowNewPassword)}

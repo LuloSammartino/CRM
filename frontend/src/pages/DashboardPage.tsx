@@ -6,6 +6,7 @@ import ModalPortal from "../components/ModalPortal";
 import PageHeader from "../components/PageHeader";
 import SaleDetailDialog from "../components/SaleDetailDialog";
 import { api, type SaleRow } from "../lib/api";
+import { formatArgentineDateTime } from "../lib/date";
 import { CRM_SALE_CREATED_EVENT } from "../lib/events";
 
 const SALES_PAGE_SIZE = 100;
@@ -55,7 +56,7 @@ function formatSaleDate(iso: string) {
     }
 
     // Si no es hoy ni ayer, devolvemos tu formato original
-    return inputDate.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+    return formatArgentineDateTime(inputDate);
 
   } catch {
     return iso;
@@ -491,6 +492,7 @@ export default function DashboardPage() {
                       <input
                         ref={dayPickerRef}
                         type="date"
+                        lang="es-AR"
                         value={parseDisplayDate(dayInput) ?? ""}
                         onChange={(e) => setDayInput(dateToDisplay(e.target.value))}
                         className="sr-only"
@@ -556,6 +558,7 @@ export default function DashboardPage() {
                         <input
                           ref={rangeFromPickerRef}
                           type="date"
+                          lang="es-AR"
                           value={parseDisplayDate(rangeFromInput) ?? ""}
                           onChange={(e) => setRangeFromInput(dateToDisplay(e.target.value))}
                           className="sr-only"
@@ -586,6 +589,7 @@ export default function DashboardPage() {
                         <input
                           ref={rangeToPickerRef}
                           type="date"
+                          lang="es-AR"
                           value={parseDisplayDate(rangeToInput) ?? ""}
                           onChange={(e) => setRangeToInput(dateToDisplay(e.target.value))}
                           className="sr-only"

@@ -182,7 +182,8 @@ export type SaleRow = {
 };
 
 export type BusinessMetrics = {
-  month: string;
+  from: string;
+  to: string;
   sales: {
     total: number;
     count: number;

@@ -113,9 +113,10 @@ export const api = {
     }),
   me: () => request<{ user: { id: string; username: string } }>("/api/auth/me"),
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
-  getBusinessMetrics: (month?: string) => {
+  getBusinessMetrics: (range: { from: string; to: string }) => {
     const query = new URLSearchParams();
-    if (month?.trim()) query.set("month", month.trim());
+    query.set("from", range.from);
+    query.set("to", range.to);
     const text = query.toString();
     return request<BusinessMetrics>(`/api/metricas${text ? `?${text}` : ""}`);
   },
@@ -226,6 +227,7 @@ export const api = {
   updateSale: (id: string, data: CreateSalePayload) =>
     request<unknown>(`/api/sales/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteSale: (id: string) => request<void>(`/api/sales/${id}`, { method: "DELETE" }),
+  getSale: (id: string) => request<SaleRow>(`/api/sales/${id}`),
   listSalesPage: (params?: PaginationParams & SaleFilters) => {
     const query = new URLSearchParams();
     if (params?.product?.trim()) query.set("product", params.product.trim());

@@ -238,6 +238,7 @@ export function CashMovementDialog({ initialMovement, defaultDate, onClose, onSa
                     <span className="font-medium text-slate-700 dark:text-slate-300">Fecha</span>
                     <input
                       type="date"
+                      lang="es-AR"
                       value={fecha}
                       onChange={(e) => setFecha(e.target.value)}
                       className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"

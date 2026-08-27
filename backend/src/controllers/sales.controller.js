@@ -210,6 +210,24 @@ export async function listSales(req, res, next) {
   }
 }
 
+export async function getSale(req, res, next) {
+  try {
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "id de venta invalido" });
+    }
+
+    const sale = await prisma.venta.findUnique({ where: { id }, include: saleInclude });
+    if (!sale) {
+      return res.status(404).json({ error: "NotFound", message: "Venta no encontrada" });
+    }
+
+    res.json(cleanSale(sale));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function createSale(req, res, next) {
   try {
     const input = createSaleSchema.parse(req.body);

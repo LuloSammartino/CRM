@@ -41,6 +41,7 @@ export default function AdminLayout() {
               <NavItem to="/" label="Caja Diaria" />
               <NavItem to="/ventas" label="Ventas" />
               <NavItem to="/clientes" label="Clientes" />
+              <NavItem to="/cuenta-corriente" label="Cuenta corriente" />
               <NavItem to="/productos" label="Productos" />
               <NavItem to="/proveedores" label="Proveedores" />
               <NavItem to="/metricas" label="Metricas" />

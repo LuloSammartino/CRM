@@ -1,10 +1,12 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, type CurrentAccountDebtor, type CustomerMovement } from "../lib/api";
+import { api, type CurrentAccountDebtor, type CustomerMovement, type SaleRow } from "../lib/api";
 import { notifyCashMovementCreated } from "../lib/events";
+import { formatArgentineDateTime } from "../lib/date";
 import ModalPortal from "./ModalPortal";
+import SaleDetailDialog from "./SaleDetailDialog";
 
 type CurrentAccountDebtorsDialogProps = {
-  onClose: () => void;
+  onClose?: () => void;
   initialRows?: CurrentAccountDebtor[];
   onRowsChange?: (rows: CurrentAccountDebtor[]) => void;
 };
@@ -18,11 +20,7 @@ function formatMoney(value: number) {
 }
 
 function formatDate(value: string) {
-  try {
-    return new Date(value).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
-  } catch {
-    return value;
-  }
+  return formatArgentineDateTime(value);
 }
 
 function formatAmountInput(value: string) {
@@ -44,6 +42,9 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
   const [error, setError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [movementError, setMovementError] = useState<string | null>(null);
+  const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
+  const [loadingSaleId, setLoadingSaleId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const loadRows = useCallback(() => {
     setLoading(true);
@@ -69,6 +70,10 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
   }, [initialRows]);
 
   const totalDebt = useMemo(() => rows.reduce((sum, row) => sum + row.saldo, 0), [rows]);
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("es");
+    return query ? rows.filter((row) => row.name.toLocaleLowerCase("es").includes(query)) : rows;
+  }, [rows, search]);
   const hasDebtors = rows.length > 0;
   const parsedAmount = Number(amount.replace(/,/g, ""));
   const movementsWithBalance = useMemo(() => {
@@ -118,6 +123,19 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
     }
   }
 
+  async function showSaleDetail(ventaId: string) {
+    setLoadingSaleId(ventaId);
+    setError(null);
+
+    try {
+      setSelectedSale(await api.getSale(ventaId));
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    } finally {
+      setLoadingSaleId(null);
+    }
+  }
+
   async function submitPayment(event: FormEvent) {
     event.preventDefault();
     if (!paying) return;
@@ -160,17 +178,16 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
     }
   }
 
-  return (
-    <ModalPortal>
-      <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4">
-        <button type="button" className="absolute inset-0" aria-label="Cerrar cuenta corriente" onClick={onClose} />
+  const content = (
+      <div className={onClose ? "fixed inset-0 z-[110] flex items-end justify-center bg-slate-900/50 sm:items-center sm:p-4" : "w-full"}>
+        {onClose ? <button type="button" className="absolute inset-0" aria-label="Cerrar cuenta corriente" onClick={onClose} /> : null}
 
-        <div className="relative z-[120] flex max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:rounded-lg">
+        <div className={[
+          "relative flex w-full flex-col overflow-hidden border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900",
+          onClose ? "z-[120] max-h-[92dvh] max-w-4xl rounded-t-lg shadow-2xl sm:rounded-lg" : "rounded-xl shadow-sm"
+        ].join(" ")}>
           <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Cuenta corriente</h2>
-            </div>
-            <button
+            {onClose ? <button
               type="button"
               aria-label="Cerrar"
               onClick={onClose}
@@ -179,7 +196,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6 6 18" />
               </svg>
-            </button>
+            </button> : null}
           </div>
 
           <div className="grid gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:grid-cols-2">
@@ -204,6 +221,19 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
             </div>
           </div>
 
+          <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+            <label className="block text-sm">
+              <span className="font-medium text-slate-700 dark:text-slate-300">Buscar por nombre</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Nombre del cliente..."
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-emerald-900/50"
+              />
+            </label>
+          </div>
+
           <div className="min-h-0 flex-1 overflow-auto">
             {loading ? (
               <div className="flex min-h-64 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
@@ -213,7 +243,7 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
               <div className="m-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
                 {error}
               </div>
-            ) : rows.length ? (
+            ) : filteredRows.length ? (
               <table className="min-w-full text-sm">
                 <thead className="sticky top-0 bg-slate-100 text-xs font-semibold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                   <tr>
@@ -225,14 +255,14 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {rows.map((row) => (
+                  {filteredRows.map((row) => (
                     <Fragment key={`${row.id}-${row.ventaId ?? "global"}`}>
                       <tr className="hover:bg-emerald-50/50 dark:hover:bg-slate-800/60">
                         <td className="px-5 py-3 font-semibold text-slate-900 dark:text-slate-100">
                           <span className="block">{row.name}</span>
                           {row.ventaId ? (
                             <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">
-                              Venta #{row.ventaId}{row.fecha ? ` - ${formatDate(row.fecha)}` : ""}
+                              {row.fecha ? ` ${formatDate(row.fecha)}` : ""}
                             </span>
                           ) : null}
                         </td>
@@ -241,6 +271,21 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
                         <td className="px-5 py-3 text-right font-bold tabular-nums text-red-700 dark:text-red-300">{formatMoney(row.saldo)}</td>
                         <td className="px-5 py-3 text-right">
                           <div className="flex justify-end gap-2">
+                            {row.ventaId ? (
+                              <button
+                                type="button"
+                                onClick={() => showSaleDetail(row.ventaId!)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-60 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+                                disabled={loadingSaleId === row.ventaId || saving}
+                                aria-label={`Ver detalle de la venta de ${row.name}`}
+                                title="Ver detalle de venta"
+                              >
+                                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 3h10l2 2v16H5V5l2-2Z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 9h8M8 13h8M8 17h5" />
+                                </svg>
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => toggleMovements(row)}
@@ -394,12 +439,18 @@ export default function CurrentAccountDebtorsDialog({ onClose, initialRows, onRo
               </table>
             ) : (
               <div className="flex min-h-64 items-center justify-center px-5 text-center text-sm text-slate-500 dark:text-slate-400">
-                No hay clientes con deuda pendiente.
+                {search.trim() ? "No hay clientes que coincidan con la busqueda." : "No hay clientes con deuda pendiente."}
               </div>
             )}
           </div>
         </div>
       </div>
-    </ModalPortal>
+  );
+
+  return (
+    <>
+      {onClose ? <ModalPortal>{content}</ModalPortal> : content}
+      {selectedSale ? <SaleDetailDialog sale={selectedSale} onClose={() => setSelectedSale(null)} /> : null}
+    </>
   );
 }

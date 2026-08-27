@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SaleRow } from "../lib/api";
+import { formatArgentineDateTime } from "../lib/date";
 import ModalPortal from "./ModalPortal";
 
 type Props = {
@@ -18,11 +19,7 @@ function formatMoney(value: number) {
 }
 
 function formatSaleDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
-  } catch {
-    return iso;
-  }
+  return formatArgentineDateTime(iso);
 }
 
 export default function SaleDetailDialog({
